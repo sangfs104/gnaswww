@@ -6,7 +6,6 @@ const Banner = () => {
   const [currentImage, setCurrentImage] = useState(0);
   const images = [
     "/img/banner1.jpg",
-    "/img/banner2.jpg",
   ];
 
   useEffect(() => {
