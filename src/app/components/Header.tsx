@@ -1,179 +1,3 @@
-// // "use client";
-// // import React, { useState, useEffect } from "react";
-// // import { Facebook, Instagram, Search, ShoppingBag, User } from "lucide-react";
-// // import Image from "next/image";
-// // import { useSelector } from "react-redux";
-// // import { RootState } from "../../redux/store";
-// // import { useRouter } from "next/navigation";
-
-// // const Header = () => {
-// //   const [currentMessage, setCurrentMessage] = useState(0);
-// //   const [cart, setCart] = useState<{ items: any[] }>({ items: [] });
-// //   const [loading, setLoading] = useState(false);
-// //   const [loggedInUser, setLoggedInUser] = useState<any>(null);
-// //   const router = useRouter();
-
-// //   // Lấy user từ redux hoặc localStorage
-// //   const reduxUser = useSelector((state: RootState) => state.auth.user);
-
-// //   // Lấy userId ưu tiên theo thứ tự: redux -> localStorage user -> guestId
-// //   let userId = "";
-// //   if (reduxUser?.id) {
-// //     userId = reduxUser.id;
-// //   } else if (typeof window !== "undefined") {
-// //     const localUser = localStorage.getItem("user");
-// //     if (localUser) {
-// //       const parsed = JSON.parse(localUser);
-// //       if (parsed?.id) userId = parsed.id;
-// //     }
-// //     if (!userId) {
-// //       userId = localStorage.getItem("guestId") || "";
-// //     }
-// //   }
-
-// //   // Lấy giỏ hàng từ API
-// //   const fetchCart = async () => {
-// //     if (!userId) return;
-// //     setLoading(true);
-// //     try {
-// //       const res = await fetch(`http://localhost:3000/api/cart/${userId}`, {
-// //         credentials: "include",
-// //       });
-// //       const data = await res.json();
-// //       setCart(data);
-// //     } catch (err) {
-// //       setCart({ items: [] });
-// //     }
-// //     setLoading(false);
-// //   };
-
-// //   useEffect(() => {
-// //     // Lấy user từ localStorage để hiển thị tên
-// //     if (typeof window !== "undefined") {
-// //       const storedUser = localStorage.getItem("user");
-// //       if (storedUser) setLoggedInUser(JSON.parse(storedUser));
-// //       else if (reduxUser) setLoggedInUser(reduxUser);
-// //       else setLoggedInUser(null);
-// //     }
-// //     fetchCart();
-// //     // eslint-disable-next-line
-// //   }, [userId, reduxUser]);
-
-// //   // Lắng nghe sự kiện cart-updated để cập nhật header ngay lập tức
-// //   useEffect(() => {
-// //     const handler = () => fetchCart();
-// //     window.addEventListener("cart-updated", handler);
-// //     return () => window.removeEventListener("cart-updated", handler);
-// //     // eslint-disable-next-line
-// //   }, []);
-
-// //   const cartCount = cart.items.reduce(
-// //     (sum, item) => sum + (item.quantity || 0),
-// //     0
-// //   );
-
-// //   const messages = [
-// //     "Use code <span className='font-bold'>WELCOME</span> to get 10% discount",
-// //     "Free shipping on orders over $50",
-// //     "<span className='font-bold'>Use code SAVE20 for 20% off your first order</span>",
-// //     "Shop now and enjoy exclusive deals!",
-// //   ];
-
-// //   useEffect(() => {
-// //     const interval = setInterval(() => {
-// //       setCurrentMessage((prev) => (prev + 1) % messages.length);
-// //     }, 5000);
-// //     return () => clearInterval(interval);
-// //   }, [messages.length]);
-
-// //   return (
-// //     <>
-// //       {/* Discount Banner */}
-// //       <div className="bg-gray-100 text-center py-2 text-xs sm:text-sm text-gray-700">
-// //         <div
-// //           className="transition-opacity duration-500"
-// //           dangerouslySetInnerHTML={{
-// //             __html: `&lt;&nbsp;${messages[currentMessage]}&nbsp;&gt;`,
-// //           }}
-// //         />
-// //       </div>
-
-// //       {/* Main Header */}
-// //       <header className="flex justify-between items-center px-4 sm:px-8 md:px-16 lg:px-60 py-4 border-b border-gray-300 bg-white">
-// //         {/* Left Section */}
-// //         <div className="flex items-center space-x-2 sm:space-x-4">
-// //           <div className="flex space-x-1 sm:space-x-2"></div>
-// //           <Search size={16} className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer" />
-// //           <div className="text-xs sm:text-sm text-gray-700">
-// //             Vietnam | USD $
-// //           </div>
-// //         </div>
-
-// //         {/* Center Section */}
-// //         <div className="text-center">
-// //           <Image
-// //             width={400}
-// //             height={100}
-// //             src="/img/Logo typography cá m1.png"
-// //             alt="Offon Logo"
-// //             className="w-[300px] h-[75px] sm:w-[400px] sm:h-[100px] md:w-[500px] md:h-[125px] lg:w-[600px] lg:h-[150px] object-contain"
-// //           />
-// //         </div>
-
-// //         {/* Right Section */}
-// //         <div className="flex items-center space-x-2 sm:space-x-4">
-// //           <div className="relative">
-// //             {loggedInUser?.name ? (
-// //               <span
-// //                 className="text-xs sm:text-sm cursor-pointer hover:underline"
-// //                 onClick={() => router.push("/profile")}
-// //               >
-// //                 {loggedInUser.name}
-// //               </span>
-// //             ) : (
-// //               <User
-// //                 size={16}
-// //                 className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer"
-// //                 onClick={() => router.push("/login")}
-// //               />
-// //             )}
-// //           </div>
-// //           <div className="relative">
-// //             <ShoppingBag
-// //               size={16}
-// //               className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer"
-// //               onClick={() => router.push("/cart")}
-// //             />
-// //             {cartCount > 0 && (
-// //               <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full px-1 text-xs">
-// //                 {cartCount}
-// //               </span>
-// //             )}
-// //           </div>
-// //         </div>
-// //       </header>
-
-// //       {/* Navigation Menu */}
-// //       <nav className="flex justify-center space-x-4 sm:space-x-6 py-4 text-gray-700 text-xs sm:text-sm">
-// //         <a href="/products" className="hover:underline">
-// //           SHOP
-// //         </a>
-// //         <a href="#" className="hover:underline">
-// //           CONTACT
-// //         </a>
-// //         <a href="#" className="hover:underline">
-// //           TERMS & SHIPPING
-// //         </a>
-// //         <a href="#" className="hover:underline">
-// //           ABOUT US
-// //         </a>
-// //       </nav>
-// //     </>
-// //   );
-// // };
-
-// // export default Header;
-
 // "use client";
 // import React, { useState, useEffect } from "react";
 // import { Facebook, Instagram, Search, ShoppingBag, User } from "lucide-react";
@@ -246,7 +70,7 @@
 
 //   const cartCount = cart.items.reduce(
 //     (sum, item) => sum + (item.quantity || 0),
-//     0
+//     0,
 //   );
 
 //   const messages = [
@@ -263,6 +87,15 @@
 //     return () => clearInterval(interval);
 //   }, [messages.length]);
 
+//   // Ngăn lướt trang khi menu mở
+//   useEffect(() => {
+//     if (isMenuOpen && typeof window !== "undefined") {
+//       document.body.style.overflow = "hidden";
+//     } else {
+//       document.body.style.overflow = "auto";
+//     }
+//   }, [isMenuOpen]);
+
 //   return (
 //     <>
 //       {/* Discount Banner */}
@@ -276,7 +109,7 @@
 //       </div>
 
 //       {/* Main Header */}
-//       <header className="flex justify-between items-center px-4 sm:px-8 md:px-16 lg:px-60 py-4 border-b border-gray-300 bg-white relative">
+//       <header className="flex justify-between items-center px-4 sm:px-8 md:px-16 lg:px-60 py-4 border-b border-gray-700 bg-white relative">
 //         {/* Left Section */}
 //         <div className="flex items-center space-x-2 sm:space-x-4">
 //           <button
@@ -357,11 +190,11 @@
 //         </div>
 //       </header>
 
-//       {/* Mobile Navigation Menu - Slides from left below header */}
+//       {/* Mobile Navigation Menu - Hiển thị cố định khi mở */}
 //       <nav
-//         className={`sm:hidden fixed top-[150px] left-0 h-[calc(100%-100px)] w-screen bg-white shadow-lg transform ${
-//           isMenuOpen ? "translate-x-0" : "-translate-x-full"
-//         } transition-transform duration-300 ease-in-out z-10 p-4`}
+//         className={`sm:hidden fixed top-[140px] left-0 h-[calc(100%-100px)] w-screen bg-white shadow-lg z-10 p-4 ${
+//           isMenuOpen ? "block" : "hidden"
+//         }`}
 //       >
 //         <a
 //           href="/products"
@@ -413,27 +246,42 @@
 // };
 
 // export default Header;
-
 "use client";
 import React, { useState, useEffect } from "react";
-import { Facebook, Instagram, Search, ShoppingBag, User } from "lucide-react";
+import { Search, ShoppingBag, User } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { useSelector } from "react-redux";
 import { RootState } from "../../redux/store";
 import { useRouter } from "next/navigation";
 
+// Định nghĩa type cho User và Cart
+interface UserType {
+  id?: string;
+  name?: string;
+  email?: string;
+}
+
+interface CartItem {
+  id: string | number;
+  quantity: number;
+  [key: string]: any;
+}
+
+interface CartType {
+  items: CartItem[];
+}
+
 const Header = () => {
   const [currentMessage, setCurrentMessage] = useState(0);
-  const [cart, setCart] = useState<{ items: any[] }>({ items: [] });
-  const [loading, setLoading] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState<any>(null);
+  const [cart, setCart] = useState<CartType>({ items: [] });
+  const [loggedInUser, setLoggedInUser] = useState<UserType | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const router = useRouter();
 
-  // Lấy user từ redux hoặc localStorage
+  const router = useRouter();
   const reduxUser = useSelector((state: RootState) => state.auth.user);
 
-  // Lấy userId ưu tiên theo thứ tự: redux -> localStorage user -> guestId
+  // Lấy userId
   let userId = "";
   if (reduxUser?.id) {
     userId = reduxUser.id;
@@ -448,45 +296,46 @@ const Header = () => {
     }
   }
 
-  // Lấy giỏ hàng từ API
+  // Lấy giỏ hàng
   const fetchCart = async () => {
     if (!userId) return;
-    setLoading(true);
     try {
       const res = await fetch(`http://localhost:3000/api/cart/${userId}`, {
         credentials: "include",
       });
+      if (!res.ok) throw new Error("Failed to fetch cart");
       const data = await res.json();
       setCart(data);
-    } catch (err) {
+    } catch {
       setCart({ items: [] });
     }
-    setLoading(false);
   };
 
   useEffect(() => {
-    // Lấy user từ localStorage để hiển thị tên
     if (typeof window !== "undefined") {
       const storedUser = localStorage.getItem("user");
-      if (storedUser) setLoggedInUser(JSON.parse(storedUser));
-      else if (reduxUser) setLoggedInUser(reduxUser);
-      else setLoggedInUser(null);
+      if (storedUser) {
+        setLoggedInUser(JSON.parse(storedUser));
+      } else if (reduxUser) {
+        setLoggedInUser(reduxUser);
+      } else {
+        setLoggedInUser(null);
+      }
     }
     fetchCart();
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, reduxUser]);
 
-  // Lắng nghe sự kiện cart-updated để cập nhật header ngay lập tức
+  // Lắng nghe sự kiện cập nhật giỏ hàng
   useEffect(() => {
     const handler = () => fetchCart();
     window.addEventListener("cart-updated", handler);
     return () => window.removeEventListener("cart-updated", handler);
-    // eslint-disable-next-line
   }, []);
 
   const cartCount = cart.items.reduce(
     (sum, item) => sum + (item.quantity || 0),
-    0
+    0,
   );
 
   const messages = [
@@ -501,11 +350,11 @@ const Header = () => {
       setCurrentMessage((prev) => (prev + 1) % messages.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, [messages.length]);
+  }, []);
 
-  // Ngăn lướt trang khi menu mở
+  // Ngăn scroll khi menu mobile mở
   useEffect(() => {
-    if (isMenuOpen && typeof window !== "undefined") {
+    if (isMenuOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "auto";
@@ -537,7 +386,6 @@ const Header = () => {
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
             >
               {isMenuOpen ? (
                 <path
@@ -562,7 +410,7 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Center Section */}
+        {/* Center Section - Logo */}
         <div className="text-center">
           <Image
             width={400}
@@ -606,19 +454,19 @@ const Header = () => {
         </div>
       </header>
 
-      {/* Mobile Navigation Menu - Hiển thị cố định khi mở */}
+      {/* Mobile Navigation Menu */}
       <nav
         className={`sm:hidden fixed top-[140px] left-0 h-[calc(100%-100px)] w-screen bg-white shadow-lg z-10 p-4 ${
           isMenuOpen ? "block" : "hidden"
         }`}
       >
-        <a
+        <Link
           href="/products"
           className="block py-2 hover:underline"
           onClick={() => setIsMenuOpen(false)}
         >
           SHOP
-        </a>
+        </Link>
         <a
           href="#"
           className="block py-2 hover:underline"
@@ -642,11 +490,11 @@ const Header = () => {
         </a>
       </nav>
 
-      {/* Navigation Menu - Default on desktop */}
-      <nav className="flex justify-center space-x-4 sm:space-x-6 py-4 text-gray-700 text-xs sm:text-sm sm:flex hidden">
-        <a href="/products" className="hover:underline">
+      {/* Desktop Navigation */}
+      <nav className="hidden sm:flex justify-center space-x-4 sm:space-x-6 py-4 text-gray-700 text-xs sm:text-sm">
+        <Link href="/products" className="hover:underline">
           SHOP
-        </a>
+        </Link>
         <a href="#" className="hover:underline">
           CONTACT
         </a>
