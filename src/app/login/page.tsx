@@ -171,8 +171,9 @@ export default function LoginPage() {
               className="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
+
           <div>
-            <label className="block mb-1 font-medium">Mật khẩu</label>
+            <label className="block mb-1 font-medium">Mật khẩu :</label>
             <input
               type="password"
               value={password}
