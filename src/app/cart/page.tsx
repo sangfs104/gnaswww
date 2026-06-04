@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-
 const getUserId = () => {
   if (typeof window !== "undefined") {
     const user = JSON.parse(localStorage.getItem("user") || "null");
