@@ -4,6 +4,54 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
+// ==================== TYPES ====================
+
+interface Variant {
+  _id: string;
+  size?: string;
+  color?: string;
+  price: number;
+  discountPrice?: number;
+  image?: string;
+  stock?: number;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  price: number;
+  discountPrice?: number;
+  images?: string[];
+}
+
+interface CartItem {
+  _id: string;
+  product: Product;
+  variant?: Variant;
+  quantity: number;
+}
+
+interface Address {
+  _id: string;
+  fullName: string;
+  phone: string;
+  address: string;
+  city: string;
+  country: string;
+  isDefault?: boolean;
+}
+
+interface NewAddress {
+  fullName: string;
+  phone: string;
+  address: string;
+  city: string;
+  country: string;
+  isDefault: boolean;
+}
+
+// ==================== HELPERS ====================
+
 const getUserId = () => {
   if (typeof window !== "undefined") {
     const user = JSON.parse(localStorage.getItem("user") || "null");
@@ -13,15 +61,47 @@ const getUserId = () => {
   return "";
 };
 
+const getEffectivePrice = (item: CartItem): number => {
+  if (
+    item.variant?.discountPrice &&
+    item.variant.discountPrice < item.variant.price
+  ) {
+    return item.variant.discountPrice;
+  }
+  if (item.variant?.price) return item.variant.price;
+  if (
+    item.product?.discountPrice &&
+    item.product.discountPrice < item.product.price
+  ) {
+    return item.product.discountPrice;
+  }
+  return item.product?.price ?? 0;
+};
+
+const getOriginalPrice = (item: CartItem): number =>
+  item.variant?.price ?? item.product?.price ?? 0;
+
+const isOnSale = (item: CartItem): boolean =>
+  !!(
+    item.variant?.discountPrice &&
+    item.variant.discountPrice < item.variant.price
+  ) ||
+  !!(
+    item.product?.discountPrice &&
+    item.product.discountPrice < item.product.price
+  );
+
+// ==================== COMPONENT ====================
+
 const CheckoutPage = () => {
   const router = useRouter();
   const userId = getUserId();
 
-  const [cartItems, setCartItems] = useState<any[]>([]);
-  const [addresses, setAddresses] = useState<any[]>([]);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [useNewAddress, setUseNewAddress] = useState(false);
-  const [newAddress, setNewAddress] = useState({
+  const [newAddress, setNewAddress] = useState<NewAddress>({
     fullName: "",
     phone: "",
     address: "",
@@ -35,12 +115,11 @@ const CheckoutPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("vi-VN", {
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
     }).format(price);
-  };
 
   useEffect(() => {
     const fetchCart = async () => {
@@ -67,18 +146,16 @@ const CheckoutPage = () => {
       }
       try {
         const res = await fetch("http://localhost:3000/api/address", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
           credentials: "include",
         });
         if (!res.ok) {
           const errorData = await res.json().catch(() => ({}));
           throw new Error(errorData.error || "Không thể tải danh sách địa chỉ");
         }
-        const data = await res.json();
+        const data: Address[] = await res.json();
         setAddresses(data);
-        const defaultAddress = data.find((addr: any) => addr.isDefault);
+        const defaultAddress = data.find((addr) => addr.isDefault);
         if (defaultAddress) setSelectedAddress(defaultAddress._id);
       } catch (err: unknown) {
         setError(
@@ -94,18 +171,7 @@ const CheckoutPage = () => {
   }, [userId, router]);
 
   const subtotal = cartItems.reduce(
-    (total, item) =>
-      total +
-      ((item.variant?.discountPrice &&
-      item.variant?.discountPrice < item.variant?.price
-        ? item.variant.discountPrice
-        : item.variant?.price) ||
-        (item.product?.discountPrice &&
-        item.product?.discountPrice < item.product?.price
-          ? item.product.discountPrice
-          : item.product?.price) ||
-        0) *
-        item.quantity,
+    (total, item) => total + getEffectivePrice(item) * item.quantity,
     0,
   );
 
@@ -142,10 +208,6 @@ const CheckoutPage = () => {
         !newAddress.country)
     ) {
       setError("Vui lòng điền đầy đủ thông tin địa chỉ mới.");
-      return;
-    }
-    if (!paymentMethod) {
-      setError("Vui lòng chọn phương thức thanh toán.");
       return;
     }
 
@@ -217,26 +279,10 @@ const CheckoutPage = () => {
             <p className="text-gray-600">Giỏ hàng trống.</p>
           ) : (
             <div className="space-y-4">
-              {cartItems.map((item: any) => {
-                const effectivePrice =
-                  (item.variant?.discountPrice &&
-                  item.variant?.discountPrice < item.variant?.price
-                    ? item.variant.discountPrice
-                    : item.variant?.price) ||
-                  (item.product?.discountPrice &&
-                  item.product?.discountPrice < item.product?.price
-                    ? item.product.discountPrice
-                    : item.product?.price) ||
-                  0;
-
-                const isOnSale =
-                  (item.variant?.discountPrice &&
-                    item.variant?.discountPrice < item.variant?.price) ||
-                  (item.product?.discountPrice &&
-                    item.product?.discountPrice < item.product?.price);
-
-                const originalPrice =
-                  item.variant?.price || item.product?.price || 0;
+              {cartItems.map((item) => {
+                const effectivePrice = getEffectivePrice(item);
+                const originalPrice = getOriginalPrice(item);
+                const onSale = isOnSale(item);
 
                 return (
                   <div
@@ -266,7 +312,7 @@ const CheckoutPage = () => {
                         Số lượng: {item.quantity}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {isOnSale ? (
+                        {onSale ? (
                           <div className="flex items-center space-x-2">
                             <span className="text-red-500">
                               {formatPrice(effectivePrice)}
@@ -302,7 +348,7 @@ const CheckoutPage = () => {
           {addresses.length > 0 && (
             <div className="mb-4">
               <h3 className="text-sm font-medium mb-2">Chọn địa chỉ có sẵn:</h3>
-              {addresses.map((addr: any) => (
+              {addresses.map((addr) => (
                 <div key={addr._id} className="flex items-center mb-2">
                   <input
                     type="radio"
@@ -344,46 +390,27 @@ const CheckoutPage = () => {
 
           {useNewAddress && (
             <div className="space-y-4">
-              <input
-                type="text"
-                name="fullName"
-                value={newAddress.fullName}
-                onChange={handleNewAddressChange}
-                placeholder="Họ và tên"
-                className="w-full border rounded px-3 py-2"
-              />
-              <input
-                type="text"
-                name="phone"
-                value={newAddress.phone}
-                onChange={handleNewAddressChange}
-                placeholder="Số điện thoại"
-                className="w-full border rounded px-3 py-2"
-              />
-              <input
-                type="text"
-                name="address"
-                value={newAddress.address}
-                onChange={handleNewAddressChange}
-                placeholder="Địa chỉ"
-                className="w-full border rounded px-3 py-2"
-              />
-              <input
-                type="text"
-                name="city"
-                value={newAddress.city}
-                onChange={handleNewAddressChange}
-                placeholder="Thành phố"
-                className="w-full border rounded px-3 py-2"
-              />
-              <input
-                type="text"
-                name="country"
-                value={newAddress.country}
-                onChange={handleNewAddressChange}
-                placeholder="Quốc gia"
-                className="w-full border rounded px-3 py-2"
-              />
+              {(
+                ["fullName", "phone", "address", "city", "country"] as const
+              ).map((field) => (
+                <input
+                  key={field}
+                  type="text"
+                  name={field}
+                  value={newAddress[field]}
+                  onChange={handleNewAddressChange}
+                  placeholder={
+                    {
+                      fullName: "Họ và tên",
+                      phone: "Số điện thoại",
+                      address: "Địa chỉ",
+                      city: "Thành phố",
+                      country: "Quốc gia",
+                    }[field]
+                  }
+                  className="w-full border rounded px-3 py-2"
+                />
+              ))}
               <label className="flex items-center">
                 <input
                   type="checkbox"
@@ -432,7 +459,7 @@ const CheckoutPage = () => {
         <form onSubmit={handleCheckout} className="space-y-4">
           <button
             type="submit"
-            className="w-full bg-black text-white py-3 rounded-md hover:bg-gray-800 transition-colors text-sm"
+            className="w-full bg-black text-white py-3 rounded-md hover:bg-gray-800 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={
               cartItems.length === 0 || (!selectedAddress && !useNewAddress)
             }
