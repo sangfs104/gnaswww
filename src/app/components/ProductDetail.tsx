@@ -68,6 +68,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
     }).format(price);
   };
 
+  // Helper để lấy URL hình ảnh an toàn
+  const getImageUrl = (imgPath?: string): string => {
+    if (!imgPath) return "/img/placeholder.jpg";
+
+    if (imgPath.startsWith("http")) return imgPath;
+
+    const cleanPath = imgPath.startsWith("/") ? imgPath : `/${imgPath}`;
+    return `${process.env.NEXT_PUBLIC_API_URL}${cleanPath}`;
+  };
+
   const getUserId = () => {
     if (typeof window !== "undefined") {
       const storedUser = localStorage.getItem("user");
@@ -92,7 +102,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
       const guestId = localStorage.getItem("guestId");
       if (guestId && guestId !== user.id) {
         try {
-          const response = await fetch("/api/cart/merge", {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/merge`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             credentials: "include",
@@ -121,7 +131,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
 
     const productImages: ImageItem[] = (product.images || []).map(
       (img, idx) => ({
-        src: img,
+        src: getImageUrl(img),
         type: "product",
         index: idx,
       }),
@@ -130,7 +140,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
     const variantImages: ImageItem[] = (product.variants || [])
       .filter((v) => v.image)
       .map((v, idx) => ({
-        src: v.image!,
+        src: getImageUrl(v.image),
         type: "variant",
         variantId: v._id,
         index: idx,
@@ -215,7 +225,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
       const userId = getUserId();
       if (!userId) throw new Error("Không tìm thấy userId");
 
-      const response = await fetch("http://localhost:3000/api/cart/add", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/add`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -263,7 +273,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
       if (!userId) return;
 
       try {
-        const res = await fetch(`http://localhost:3000/api/cart/${userId}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`, {
           credentials: "include",
         });
         if (!res.ok) throw new Error("Không thể tải giỏ hàng");

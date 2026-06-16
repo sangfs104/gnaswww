@@ -218,7 +218,7 @@ const OrderDetail = () => {
       }
 
       try {
-        const res = await fetch(`http://localhost:3000/api/orders/${id}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

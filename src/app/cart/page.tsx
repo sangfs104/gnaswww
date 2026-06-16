@@ -427,7 +427,7 @@ const ShoppingCart = () => {
 
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3000/api/cart/${userId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`, {
         credentials: "include",
       });
 
@@ -466,7 +466,7 @@ const ShoppingCart = () => {
     );
 
     try {
-      const res = await fetch("http://localhost:3000/api/cart/update", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/update`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

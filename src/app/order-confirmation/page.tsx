@@ -181,7 +181,7 @@ const OrderHistory = () => {
       }
 
       try {
-        const res = await fetch("http://localhost:3000/api/orders", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

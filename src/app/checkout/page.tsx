@@ -124,7 +124,7 @@ const CheckoutPage = () => {
   useEffect(() => {
     const fetchCart = async () => {
       try {
-        const res = await fetch(`http://localhost:3000/api/cart/${userId}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`, {
           credentials: "include",
         });
         if (!res.ok) throw new Error("Không thể tải giỏ hàng");
@@ -145,7 +145,7 @@ const CheckoutPage = () => {
         return;
       }
       try {
-        const res = await fetch("http://localhost:3000/api/address", {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/address`, {
           headers: { Authorization: `Bearer ${token}` },
           credentials: "include",
         });
@@ -225,7 +225,7 @@ const CheckoutPage = () => {
           : { shippingAddress: selectedAddress }),
       };
 
-      const res = await fetch("http://localhost:3000/api/orders", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

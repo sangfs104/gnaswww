@@ -140,7 +140,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     try {
-      const res = await fetch(`http://localhost:3000/api/cart/${userId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`, {
         credentials: "include",
       });
 

@@ -31,7 +31,7 @@ export default async function ProductPage({
   // Await params trước khi dùng
   const { id } = await params;
 
-  const res = await fetch(`http://localhost:3000/api/products/${id}`, {
+  const res = await fetch(`https://gansbee.onrender.com/api/products/${id}`, {
     cache: "no-store", // luôn lấy data mới
   });
 
