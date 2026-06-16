@@ -31,16 +31,17 @@ interface Variant {
   image?: string;
 }
 
-// ✅ Product interface được điều chỉnh để tương thích với Redux Cart
+// ✅ Product interface khớp với CartSlice (images là required string[])
 interface Product {
   _id: string;
   name: string;
-  price: number; // ← Đổi thành required để khớp với Cart
-  images?: string[];
+  price: number;
+  images: string[]; // ← required, không optional
   variants?: Variant[];
   category?: { name: string };
   description?: string;
   createdAt: string;
+  slug?: string;
 }
 
 interface ProductDetailProps {
@@ -231,10 +232,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
         throw new Error(errorData.error || "Không thể thêm vào giỏ hàng");
       }
 
-      // ✅ Dispatch với type an toàn
+      // ✅ Đảm bảo images luôn là string[] (không undefined)
       dispatch(
         addToCart({
-          product,
+          product: {
+            ...product,
+            images: product.images ?? [],
+          },
           variant: selectedVariant,
           quantity,
         }),
@@ -268,7 +272,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
         data.items?.forEach((item: any) => {
           dispatch(
             addToCart({
-              product: item.product,
+              product: {
+                ...item.product,
+                images: item.product.images ?? [], // ✅ đảm bảo không undefined
+              },
               variant: item.variant,
               quantity: item.quantity,
             }),
@@ -314,14 +321,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
   const hasVariants = (product.variants?.length ?? 0) > 0;
   const firstVariantStock = product.variants?.[0]?.stock ?? 0;
 
-  if (error) {
-    return (
-      <div className="p-8 text-center text-red-500">
-        Lỗi: {error}. Vui lòng thử lại hoặc liên hệ hỗ trợ.
-      </div>
-    );
-  }
-
   if (!product) {
     return <div className="p-8 text-center">Không tìm thấy sản phẩm.</div>;
   }
@@ -329,6 +328,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
   return (
     <div className="min-h-screen bg-white">
       <div className="px-4 sm:px-8 md:px-16 lg:px-60 py-4 sm:py-6 md:py-8">
+        {/* Thông báo lỗi / thành công */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
+            {error}
+          </div>
+        )}
         {success && (
           <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md text-sm">
             {success}
@@ -340,8 +345,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
           <div className="space-y-3 sm:space-y-4">
             <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
               {isOnSale && (
-                <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
-                  Discount
+                <span className="absolute top-2 right-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded z-10">
+                  Giảm giá
                 </span>
               )}
               <Image
@@ -360,7 +365,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
             <div className="flex items-center space-x-2 overflow-x-auto pb-2">
               <button
                 onClick={prevImage}
-                className="p-1 sm:p-2 hover:bg-gray-100 rounded"
+                className="p-1 sm:p-2 hover:bg-gray-100 rounded flex-shrink-0"
                 disabled={combinedImages.length <= 1}
               >
                 <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -370,10 +375,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
                 <button
                   key={`${image.type}-${image.variantId || image.index}`}
                   onClick={() => setSelectedImageIndex(index)}
-                  className={`flex-shrink-0 w-16 sm:w-20 h-16 sm:h-20 bg-gray-100 rounded-lg overflow-hidden border-2 ${
+                  className={`flex-shrink-0 w-16 sm:w-20 h-16 sm:h-20 bg-gray-100 rounded-lg overflow-hidden border-2 transition-colors ${
                     selectedImageIndex === index
                       ? "border-black"
-                      : "border-transparent"
+                      : "border-transparent hover:border-gray-300"
                   }`}
                 >
                   <Image
@@ -388,7 +393,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
 
               <button
                 onClick={nextImage}
-                className="p-1 sm:p-2 hover:bg-gray-100 rounded"
+                className="p-1 sm:p-2 hover:bg-gray-100 rounded flex-shrink-0"
                 disabled={combinedImages.length <= 1}
               >
                 <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -432,7 +437,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
               </p>
             </div>
 
-            {/* Các phần còn lại giữ nguyên như cũ */}
             <div className="text-xs sm:text-sm text-gray-600">
               <p>
                 Thanh toán trong 4 lần không lãi suất với{" "}
@@ -487,7 +491,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
               <div className="flex items-center border border-gray-300 rounded-md w-28 sm:w-32">
                 <button
                   onClick={decreaseQuantity}
-                  className="p-2 sm:p-3 hover:bg-gray-100 transition-colors"
+                  className="p-2 sm:p-3 hover:bg-gray-100 transition-colors disabled:opacity-40"
                   disabled={quantity === 1}
                 >
                   <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -497,7 +501,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
                 </span>
                 <button
                   onClick={increaseQuantity}
-                  className="p-2 sm:p-3 hover:bg-gray-100 transition-colors"
+                  className="p-2 sm:p-3 hover:bg-gray-100 transition-colors disabled:opacity-40"
                   disabled={
                     quantity >= (selectedVariant?.stock ?? firstVariantStock)
                   }
@@ -510,7 +514,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
             {/* Nút hành động */}
             <div className="space-y-2 sm:space-y-3">
               <button
-                className="w-full py-3 sm:py-4 border-2 border-black text-black font-semibold rounded-md hover:bg-black hover:text-white transition-colors text-xs sm:text-sm"
+                className="w-full py-3 sm:py-4 border-2 border-black text-black font-semibold rounded-md hover:bg-black hover:text-white transition-colors text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={
                   loading || (selectedVariant?.stock ?? firstVariantStock) === 0
                 }
@@ -519,7 +523,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
                 {loading ? "Đang thêm..." : "Thêm vào giỏ hàng"}
               </button>
               <button
-                className="w-full py-3 sm:py-4 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700 transition-colors text-xs sm:text-sm"
+                className="w-full py-3 sm:py-4 bg-purple-600 text-white font-semibold rounded-md hover:bg-purple-700 transition-colors text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={
                   loading || (selectedVariant?.stock ?? firstVariantStock) === 0
                 }
