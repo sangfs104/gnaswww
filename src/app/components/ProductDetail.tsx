@@ -11,6 +11,10 @@ import Image from "next/image";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../redux/store";
 import { addToCart, refresh } from "../../redux/cartSlice";
+import type {
+  Product as CartProduct,
+  Variant as CartVariant,
+} from "../../redux/cartSlice";
 
 // ==================== TYPES ====================
 
@@ -21,21 +25,16 @@ interface ImageItem {
   variantId?: string;
 }
 
-interface Variant {
-  _id: string;
+// Extend Variant từ cartSlice để phù hợp với component
+interface Variant extends CartVariant {
   size: string;
   color: string;
-  price: number;
-  discountPrice?: number;
   stock: number;
-  image?: string;
+  discountPrice?: number;
 }
 
-// ✅ Product interface được điều chỉnh để tương thích với Redux Cart
-interface Product {
-  _id: string;
-  name: string;
-  price: number; // ← Đổi thành required để khớp với Cart
+// Extend Product để bao gồm variants (vì cartSlice chưa có)
+interface Product extends CartProduct {
   images?: string[];
   variants?: Variant[];
   category?: { name: string };
@@ -97,10 +96,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
             credentials: "include",
             body: JSON.stringify({ guestId, userId: user.id }),
           });
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Lỗi khi hợp nhất giỏ hàng");
-          }
+          if (!response.ok) throw new Error("Lỗi khi hợp nhất giỏ hàng");
           localStorage.removeItem("guestId");
           dispatch(refresh());
         } catch (err: unknown) {
@@ -138,8 +134,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
     const allImages = [...productImages, ...variantImages];
     setCombinedImages(allImages);
 
-    if ((product.variants?.length ?? 0) > 0) {
-      const firstVariant = product.variants![0];
+    if (product.variants && product.variants.length > 0) {
+      const firstVariant = product.variants[0];
       setSelectedVariant(firstVariant);
 
       const firstVariantImageIndex = allImages.findIndex(
@@ -166,7 +162,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
 
   const increaseQuantity = () => {
     const maxStock =
-      selectedVariant?.stock ?? product?.variants?.[0]?.stock ?? 0;
+      selectedVariant?.stock ?? (product.variants?.[0]?.stock as number) ?? 0;
     if (quantity < maxStock) {
       setQuantity((prev) => prev + 1);
       setError(null);
@@ -200,7 +196,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
       return;
     }
 
-    const stock = selectedVariant?.stock ?? product.variants?.[0]?.stock ?? 0;
+    const stock =
+      selectedVariant?.stock ?? (product.variants?.[0]?.stock as number) ?? 0;
     if (quantity > stock) {
       setError("Số lượng vượt quá tồn kho!");
       return;
@@ -231,11 +228,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
         throw new Error(errorData.error || "Không thể thêm vào giỏ hàng");
       }
 
-      // ✅ Dispatch với type an toàn
+      // ✅ Dispatch đúng type với Redux
       dispatch(
         addToCart({
-          product,
-          variant: selectedVariant,
+          product: product as CartProduct,
+          variant: selectedVariant as CartVariant | null,
           quantity,
         }),
       );
@@ -266,13 +263,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
 
         const data = await res.json();
         data.items?.forEach((item: any) => {
-          dispatch(
-            addToCart({
-              product: item.product,
-              variant: item.variant,
-              quantity: item.quantity,
-            }),
-          );
+          dispatch(addToCart(item));
         });
       } catch (err: unknown) {
         const message =
@@ -287,32 +278,25 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
   }, [dispatch]);
 
   // Tính giá
-  const effectivePrice = selectedVariant
-    ? selectedVariant.discountPrice &&
-      selectedVariant.discountPrice < selectedVariant.price
-      ? selectedVariant.discountPrice
-      : selectedVariant.price
-    : product.variants?.[0]?.discountPrice &&
-        product.variants[0].discountPrice < product.variants[0].price
-      ? product.variants[0].discountPrice
-      : product.variants?.[0]?.price || product.price;
+  const currentVariant =
+    selectedVariant || (product.variants?.[0] as Variant | undefined);
+  const effectivePrice = currentVariant
+    ? currentVariant.discountPrice &&
+      currentVariant.discountPrice < currentVariant.price
+      ? currentVariant.discountPrice
+      : currentVariant.price
+    : product.price;
 
-  const originalPrice = selectedVariant
-    ? selectedVariant.price
-    : product.variants?.[0]?.price || product.price;
+  const originalPrice = currentVariant?.price ?? product.price;
 
-  const isOnSale = selectedVariant
-    ? !!(
-        selectedVariant.discountPrice &&
-        selectedVariant.discountPrice < selectedVariant.price
-      )
-    : !!(
-        product.variants?.[0]?.discountPrice &&
-        product.variants[0].discountPrice < product.variants[0].price
-      );
+  const isOnSale = !!(
+    currentVariant?.discountPrice &&
+    currentVariant.discountPrice < currentVariant.price
+  );
 
   const hasVariants = (product.variants?.length ?? 0) > 0;
-  const firstVariantStock = product.variants?.[0]?.stock ?? 0;
+  const firstVariantStock =
+    (product.variants?.[0] as Variant | undefined)?.stock ?? 0;
 
   if (error) {
     return (
@@ -432,7 +416,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
               </p>
             </div>
 
-            {/* Các phần còn lại giữ nguyên như cũ */}
             <div className="text-xs sm:text-sm text-gray-600">
               <p>
                 Thanh toán trong 4 lần không lãi suất với{" "}
