@@ -5,7 +5,7 @@ const Footer = () => {
     <footer className="bg-gray-100 text-gray-600 p-4 flex justify-between items-center">
       <div>
         <p>
-          © 2025, COZY WORLDWIDE -{" "}
+          © 2025, GNAS WORLDWIDE -{" "}
           <Link href="/privacy-policy">Privacy policy</Link>
         </p>
       </div>
