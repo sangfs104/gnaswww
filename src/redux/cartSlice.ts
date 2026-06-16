@@ -43,16 +43,23 @@
 // redux/cartSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
+// interface Product {
+//   _id: string;
+//   name: string;
+//   price: number;
+//   images: string[];
+//   // Thêm các trường khác nếu cần
+//   slug?: string;
+//   category?: string;
+// }
 interface Product {
   _id: string;
   name: string;
   price: number;
-  images: string[];
-  // Thêm các trường khác nếu cần
+  images?: string[];  // ← thêm dấu ?
   slug?: string;
   category?: string;
 }
-
 interface Variant {
   _id: string;
   size?: string;
