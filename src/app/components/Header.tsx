@@ -1,23 +1,39 @@
 // "use client";
 // import React, { useState, useEffect } from "react";
-// import { Facebook, Instagram, Search, ShoppingBag, User } from "lucide-react";
+// import { Search, ShoppingBag, User } from "lucide-react";
 // import Image from "next/image";
+// import Link from "next/link";
 // import { useSelector } from "react-redux";
 // import { RootState } from "../../redux/store";
 // import { useRouter } from "next/navigation";
 
+// // Định nghĩa type cho User và Cart
+// interface UserType {
+//   id?: string;
+//   name?: string;
+//   email?: string;
+// }
+
+// interface CartItem {
+//   id: string | number;
+//   quantity: number;
+//   [key: string]: any;
+// }
+
+// interface CartType {
+//   items: CartItem[];
+// }
+
 // const Header = () => {
 //   const [currentMessage, setCurrentMessage] = useState(0);
-//   const [cart, setCart] = useState<{ items: any[] }>({ items: [] });
-//   const [loading, setLoading] = useState(false);
-//   const [loggedInUser, setLoggedInUser] = useState<any>(null);
+//   const [cart, setCart] = useState<CartType>({ items: [] });
+//   const [loggedInUser, setLoggedInUser] = useState<UserType | null>(null);
 //   const [isMenuOpen, setIsMenuOpen] = useState(false);
-//   const router = useRouter();
 
-//   // Lấy user từ redux hoặc localStorage
+//   const router = useRouter();
 //   const reduxUser = useSelector((state: RootState) => state.auth.user);
 
-//   // Lấy userId ưu tiên theo thứ tự: redux -> localStorage user -> guestId
+//   // Lấy userId
 //   let userId = "";
 //   if (reduxUser?.id) {
 //     userId = reduxUser.id;
@@ -32,40 +48,41 @@
 //     }
 //   }
 
-//   // Lấy giỏ hàng từ API
+//   // Lấy giỏ hàng
 //   const fetchCart = async () => {
 //     if (!userId) return;
-//     setLoading(true);
 //     try {
 //       const res = await fetch(`http://localhost:3000/api/cart/${userId}`, {
 //         credentials: "include",
 //       });
+//       if (!res.ok) throw new Error("Failed to fetch cart");
 //       const data = await res.json();
 //       setCart(data);
-//     } catch (err) {
+//     } catch {
 //       setCart({ items: [] });
 //     }
-//     setLoading(false);
 //   };
 
 //   useEffect(() => {
-//     // Lấy user từ localStorage để hiển thị tên
 //     if (typeof window !== "undefined") {
 //       const storedUser = localStorage.getItem("user");
-//       if (storedUser) setLoggedInUser(JSON.parse(storedUser));
-//       else if (reduxUser) setLoggedInUser(reduxUser);
-//       else setLoggedInUser(null);
+//       if (storedUser) {
+//         setLoggedInUser(JSON.parse(storedUser));
+//       } else if (reduxUser) {
+//         setLoggedInUser(reduxUser);
+//       } else {
+//         setLoggedInUser(null);
+//       }
 //     }
 //     fetchCart();
-//     // eslint-disable-next-line
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
 //   }, [userId, reduxUser]);
 
-//   // Lắng nghe sự kiện cart-updated để cập nhật header ngay lập tức
+//   // Lắng nghe sự kiện cập nhật giỏ hàng
 //   useEffect(() => {
 //     const handler = () => fetchCart();
 //     window.addEventListener("cart-updated", handler);
 //     return () => window.removeEventListener("cart-updated", handler);
-//     // eslint-disable-next-line
 //   }, []);
 
 //   const cartCount = cart.items.reduce(
@@ -85,11 +102,11 @@
 //       setCurrentMessage((prev) => (prev + 1) % messages.length);
 //     }, 5000);
 //     return () => clearInterval(interval);
-//   }, [messages.length]);
+//   }, []);
 
-//   // Ngăn lướt trang khi menu mở
+//   // Ngăn scroll khi menu mobile mở
 //   useEffect(() => {
-//     if (isMenuOpen && typeof window !== "undefined") {
+//     if (isMenuOpen) {
 //       document.body.style.overflow = "hidden";
 //     } else {
 //       document.body.style.overflow = "auto";
@@ -121,7 +138,6 @@
 //               fill="none"
 //               stroke="currentColor"
 //               viewBox="0 0 24 24"
-//               xmlns="http://www.w3.org/2000/svg"
 //             >
 //               {isMenuOpen ? (
 //                 <path
@@ -146,8 +162,8 @@
 //           </div>
 //         </div>
 
-//         {/* Center Section */}
-//         <div className="text-center">
+//         {/* Center Section - Logo */}
+//         {/* <div className="text-center">
 //           <Image
 //             width={400}
 //             height={100}
@@ -155,8 +171,27 @@
 //             alt="Offon Logo"
 //             className="w-[300px] h-[75px] sm:w-[400px] sm:h-[100px] md:w-[500px] md:h-[125px] lg:w-[600px] lg:h-[150px] object-contain"
 //           />
+//         </div> */}
+//         {/* Center Section - Logo */}
+//         {/* Center Section - Logo */}
+//         <div className="text-center group">
+//           <Image
+//             width={520}
+//             height={130}
+//             src="/img/Logo typography cá m1.png"
+//             alt="Offon Logo"
+//             className="w-[340px] h-[85px]
+//                sm:w-[450px] sm:h-[113px]
+//                md:w-[560px] md:h-[140px]
+//                lg:w-[660px] lg:h-[165px]
+//                object-contain
+//                animate-float
+//                group-hover:rotate-[360deg]
+//                group-hover:scale-110
+//                transition-all duration-700 ease-out
+//                group-hover:drop-shadow-2xl"
+//           />
 //         </div>
-
 //         {/* Right Section */}
 //         <div className="flex items-center space-x-2 sm:space-x-4">
 //           <div className="relative">
@@ -190,19 +225,19 @@
 //         </div>
 //       </header>
 
-//       {/* Mobile Navigation Menu - Hiển thị cố định khi mở */}
+//       {/* Mobile Navigation Menu */}
 //       <nav
 //         className={`sm:hidden fixed top-[140px] left-0 h-[calc(100%-100px)] w-screen bg-white shadow-lg z-10 p-4 ${
 //           isMenuOpen ? "block" : "hidden"
 //         }`}
 //       >
-//         <a
+//         <Link
 //           href="/products"
 //           className="block py-2 hover:underline"
 //           onClick={() => setIsMenuOpen(false)}
 //         >
 //           SHOP
-//         </a>
+//         </Link>
 //         <a
 //           href="#"
 //           className="block py-2 hover:underline"
@@ -226,11 +261,11 @@
 //         </a>
 //       </nav>
 
-//       {/* Navigation Menu - Default on desktop */}
-//       <nav className="flex justify-center space-x-4 sm:space-x-6 py-4 text-gray-700 text-xs sm:text-sm sm:flex hidden">
-//         <a href="/products" className="hover:underline">
+//       {/* Desktop Navigation */}
+//       <nav className="hidden sm:flex justify-center space-x-4 sm:space-x-6 py-4 text-gray-700 text-xs sm:text-sm">
+//         <Link href="/products" className="hover:underline">
 //           SHOP
-//         </a>
+//         </Link>
 //         <a href="#" className="hover:underline">
 //           CONTACT
 //         </a>
@@ -247,7 +282,7 @@
 
 // export default Header;
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Search, ShoppingBag, User } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -265,7 +300,7 @@ interface UserType {
 interface CartItem {
   id: string | number;
   quantity: number;
-  [key: string]: any;
+  [key: string]: string | number | boolean | object | null | undefined; // Thay any
 }
 
 interface CartType {
@@ -297,7 +332,7 @@ const Header = () => {
   }
 
   // Lấy giỏ hàng
-  const fetchCart = async () => {
+  const fetchCart = useCallback(async () => {
     if (!userId) return;
     try {
       const res = await fetch(`http://localhost:3000/api/cart/${userId}`, {
@@ -309,7 +344,7 @@ const Header = () => {
     } catch {
       setCart({ items: [] });
     }
-  };
+  }, [userId]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -323,15 +358,14 @@ const Header = () => {
       }
     }
     fetchCart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, reduxUser]);
+  }, [userId, reduxUser, fetchCart]);
 
   // Lắng nghe sự kiện cập nhật giỏ hàng
   useEffect(() => {
     const handler = () => fetchCart();
     window.addEventListener("cart-updated", handler);
     return () => window.removeEventListener("cart-updated", handler);
-  }, []);
+  }, [fetchCart]);
 
   const cartCount = cart.items.reduce(
     (sum, item) => sum + (item.quantity || 0),
@@ -350,7 +384,7 @@ const Header = () => {
       setCurrentMessage((prev) => (prev + 1) % messages.length);
     }, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [messages.length]); // Fix warning
 
   // Ngăn scroll khi menu mobile mở
   useEffect(() => {
@@ -373,13 +407,13 @@ const Header = () => {
         />
       </div>
 
-      {/* Main Header */}
-      <header className="flex justify-between items-center px-4 sm:px-8 md:px-16 lg:px-60 py-4 border-b border-gray-700 bg-white relative">
+      {/* Main Header - Nền Đen (như bạn yêu cầu trước) */}
+      <header className="flex justify-between items-center px-4 sm:px-8 md:px-16 lg:px-60 py-4 border-b border-gray-800 bg-black relative">
         {/* Left Section */}
         <div className="flex items-center space-x-2 sm:space-x-4">
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="sm:hidden text-gray-700 focus:outline-none z-20"
+            className="sm:hidden text-gray-300 focus:outline-none z-20"
           >
             <svg
               className="w-6 h-6"
@@ -404,20 +438,32 @@ const Header = () => {
               )}
             </svg>
           </button>
-          <Search size={16} className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer" />
-          <div className="hidden sm:flex text-xs sm:text-sm text-gray-700">
+          <Search
+            size={16}
+            className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer text-gray-300"
+          />
+          <div className="hidden sm:flex text-xs sm:text-sm text-gray-400">
             Vietnam | USD $
           </div>
         </div>
 
         {/* Center Section - Logo */}
-        <div className="text-center">
+        <div className="text-center group">
           <Image
-            width={400}
-            height={100}
+            width={520}
+            height={130}
             src="/img/Logo typography cá m1.png"
             alt="Offon Logo"
-            className="w-[300px] h-[75px] sm:w-[400px] sm:h-[100px] md:w-[500px] md:h-[125px] lg:w-[600px] lg:h-[150px] object-contain"
+            className="w-[340px] h-[85px] 
+                       sm:w-[450px] sm:h-[113px] 
+                       md:w-[560px] md:h-[140px] 
+                       lg:w-[660px] lg:h-[165px] 
+                       object-contain 
+                       animate-float 
+                       group-hover:rotate-[360deg] 
+                       group-hover:scale-110 
+                       transition-all duration-700 ease-out
+                       group-hover:drop-shadow-2xl"
           />
         </div>
 
@@ -426,7 +472,7 @@ const Header = () => {
           <div className="relative">
             {loggedInUser?.name ? (
               <span
-                className="text-xs sm:text-sm cursor-pointer hover:underline"
+                className="text-xs sm:text-sm cursor-pointer hover:underline text-gray-200 hover:text-white transition-colors"
                 onClick={() => router.push("/profile")}
               >
                 {loggedInUser.name}
@@ -434,7 +480,7 @@ const Header = () => {
             ) : (
               <User
                 size={16}
-                className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer"
+                className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer text-gray-300 hover:text-white transition-colors"
                 onClick={() => router.push("/login")}
               />
             )}
@@ -442,7 +488,7 @@ const Header = () => {
           <div className="relative">
             <ShoppingBag
               size={16}
-              className="w-6 h-6 sm:w-5 sm:h-5 cursor-pointer"
+              className="w-6 h-6 sm:w-5 sm:h-5 cursor-pointer text-gray-300 hover:text-white transition-colors"
               onClick={() => router.push("/cart")}
             />
             {cartCount > 0 && (
@@ -491,7 +537,7 @@ const Header = () => {
       </nav>
 
       {/* Desktop Navigation */}
-      <nav className="hidden sm:flex justify-center space-x-4 sm:space-x-6 py-4 text-gray-700 text-xs sm:text-sm">
+      <nav className="hidden sm:flex justify-center space-x-4 sm:space-x-6 py-4 text-gray-700 text-xs sm:text-sm bg-white border-b">
         <Link href="/products" className="hover:underline">
           SHOP
         </Link>

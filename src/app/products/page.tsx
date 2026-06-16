@@ -5,18 +5,21 @@
 // import Link from "next/link";
 
 // const ProductCollection = () => {
-//   const [selectedFilter, setSelectedFilter] = useState("Product status");
+//   const selectedFilter = "Product status"; // Đã sửa: không dùng useState nữa
+
 //   const [showStockFilter, setShowStockFilter] = useState(false);
 //   const [showPriceFilter, setShowPriceFilter] = useState(false);
 //   const [showSortOptions, setShowSortOptions] = useState(false);
 //   const [showMobileFilter, setShowMobileFilter] = useState(false);
-//   const [mobileFilterView, setMobileFilterView] = useState("main"); // 'main', 'status', 'price', 'sort'
+//   const [mobileFilterView, setMobileFilterView] = useState<
+//     "main" | "status" | "price"
+//   >("main");
 //   const [sortBy, setSortBy] = useState("Featured");
-//   const [stockFilter, setStockFilter] = useState([]);
+//   const [stockFilter, setStockFilter] = useState<string[]>([]);
 //   const [priceRange, setPriceRange] = useState({ from: "", to: "" });
-//   const [products, setProducts] = useState([]);
+//   const [products, setProducts] = useState<any[]>([]);
 //   const [loading, setLoading] = useState(true);
-//   const [error, setError] = useState(null);
+//   const [error, setError] = useState<string | null>(null);
 
 //   const sortOptions = [
 //     "Featured",
@@ -29,29 +32,25 @@
 //     "Date, new to old",
 //   ];
 
-//   // Function to format price in VND
-//   const formatPrice = (price) => {
+//   const formatPrice = (price: number) => {
 //     return new Intl.NumberFormat("vi-VN", {
 //       style: "currency",
 //       currency: "VND",
 //     }).format(price);
 //   };
 
-//   // Fetch products from API
+//   // Fetch products
 //   useEffect(() => {
 //     const fetchProducts = async () => {
 //       try {
 //         const response = await fetch("http://localhost:3000/api/products");
-//         if (!response.ok) {
-//           throw new Error("Failed to fetch products");
-//         }
+//         if (!response.ok) throw new Error("Failed to fetch products");
+
 //         const data = await response.json();
+
 //         setProducts(
-//           data.map((product) => {
-//             const variant =
-//               product.variants && product.variants.length > 0
-//                 ? product.variants[0]
-//                 : {};
+//           data.map((product: any) => {
+//             const variant = product.variants?.[0] || {};
 //             const price = variant.price || 0;
 //             const discountPrice = variant.discountPrice || null;
 //             const hasValidDiscount =
@@ -62,40 +61,34 @@
 //               name: product.name,
 //               originalPrice: price,
 //               discountPrice: hasValidDiscount ? discountPrice : null,
-//               displayPrice: hasValidDiscount
-//                 ? formatPrice(discountPrice)
-//                 : formatPrice(price),
-//               image:
-//                 product.images && product.images.length > 0
-//                   ? product.images[0]
-//                   : "/img/placeholder.jpg",
+//               image: product.images?.[0] || "/img/placeholder.jpg",
 //               inStock: variant.stock > 0,
 //               createdAt: product.createdAt,
 //             };
 //           }),
 //         );
-//         setLoading(false);
-//       } catch (err) {
+//       } catch (err: any) {
 //         setError(err.message);
+//       } finally {
 //         setLoading(false);
 //       }
 //     };
+
 //     fetchProducts();
 //   }, []);
 
-//   // Filter and sort products
 //   const getFilteredProducts = () => {
 //     let filteredProducts = [...products];
 
-//     // Apply stock filter
+//     // Stock Filter
 //     if (stockFilter.includes("In stock")) {
-//       filteredProducts = filteredProducts.filter((product) => product.inStock);
+//       filteredProducts = filteredProducts.filter((p) => p.inStock);
 //     }
 //     if (stockFilter.includes("Out of stock")) {
-//       filteredProducts = filteredProducts.filter((product) => !product.inStock);
+//       filteredProducts = filteredProducts.filter((p) => !p.inStock);
 //     }
 
-//     // Apply price filter
+//     // Price Filter
 //     if (priceRange.from || priceRange.to) {
 //       filteredProducts = filteredProducts.filter((product) => {
 //         const price = product.discountPrice || product.originalPrice;
@@ -105,7 +98,7 @@
 //       });
 //     }
 
-//     // Apply sorting
+//     // Sorting
 //     switch (sortBy) {
 //       case "Alphabetically, A-Z":
 //         filteredProducts.sort((a, b) => a.name.localeCompare(b.name));
@@ -129,12 +122,14 @@
 //         break;
 //       case "Date, old to new":
 //         filteredProducts.sort(
-//           (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+//           (a, b) =>
+//             new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
 //         );
 //         break;
 //       case "Date, new to old":
 //         filteredProducts.sort(
-//           (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+//           (a, b) =>
+//             new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
 //         );
 //         break;
 //       default:
@@ -144,7 +139,7 @@
 //     return filteredProducts;
 //   };
 
-//   const handleStockFilterChange = (option, checked) => {
+//   const handleStockFilterChange = (option: string, checked: boolean) => {
 //     if (checked) {
 //       setStockFilter([...stockFilter, option]);
 //     } else {
@@ -169,21 +164,14 @@
 //     setMobileFilterView("main");
 //   };
 
-//   const getFilteredProductCount = () => {
-//     return getFilteredProducts().length;
-//   };
+//   const getFilteredProductCount = () => getFilteredProducts().length;
 
-//   const hasActiveFilters = () => {
-//     return stockFilter.length > 0 || priceRange.from || priceRange.to;
-//   };
+//   const hasActiveFilters = () =>
+//     stockFilter.length > 0 || priceRange.from || priceRange.to;
 
-//   if (loading) {
-//     return <div className="text-center py-8">Loading...</div>;
-//   }
-
-//   if (error) {
+//   if (loading) return <div className="text-center py-8">Loading...</div>;
+//   if (error)
 //     return <div className="text-center py-8 text-red-500">Error: {error}</div>;
-//   }
 
 //   return (
 //     <div className="min-h-screen">
@@ -192,7 +180,7 @@
 //           All collection
 //         </h1>
 
-//         {/* Desktop Filter and Sort Bar */}
+//         {/* Desktop Filter Bar */}
 //         <div className="hidden md:flex justify-between items-center mb-8">
 //           <div className="flex items-center space-x-4">
 //             <span className="text-sm text-gray-600">Filter:</span>
@@ -224,7 +212,6 @@
 //                         Reset
 //                       </button>
 //                     </div>
-
 //                     <div className="space-y-3">
 //                       <label className="flex items-center">
 //                         <input
@@ -294,7 +281,6 @@
 //                         Reset
 //                       </button>
 //                     </div>
-
 //                     <div className="flex space-x-2">
 //                       <div className="flex-1">
 //                         <span className="text-sm mr-2">₫</span>
@@ -330,6 +316,7 @@
 //             </div>
 //           </div>
 
+//           {/* Sort */}
 //           <div className="flex items-center space-x-4">
 //             <span className="text-sm text-gray-600">Sort by:</span>
 //             <div className="relative">
@@ -342,7 +329,7 @@
 //               </button>
 
 //               {showSortOptions && (
-//                 <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+//                 <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-gray-300 rounded-md shadow-lg z-10">
 //                   <div className="py-2">
 //                     {sortOptions.map((option) => (
 //                       <button
@@ -382,9 +369,9 @@
 //           </span>
 //         </div>
 
-//         {/* Active Filters Display (Mobile) */}
+//         {/* Active Filters (Mobile) */}
 //         {hasActiveFilters() && (
-//           <div className="md:hidden mb-4 flex items-center space-x-2">
+//           <div className="md:hidden mb-4 flex items-center space-x-2 flex-wrap">
 //             {priceRange.from && priceRange.to && (
 //               <div className="flex items-center bg-white border border-gray-300 rounded-full px-3 py-1 text-sm">
 //                 <span>
@@ -413,7 +400,7 @@
 //           <div className="fixed inset-0 z-50 md:hidden">
 //             <div className="absolute inset-0 bg-black bg-opacity-50" />
 //             <div className="absolute right-0 top-0 h-full w-full bg-white">
-//               {/* Main Filter Menu */}
+//               {/* Main View */}
 //               {mobileFilterView === "main" && (
 //                 <div className="flex flex-col h-full">
 //                   <div className="flex items-center justify-between p-4 border-b">
@@ -430,7 +417,7 @@
 //                     {getFilteredProductCount()} products
 //                   </div>
 
-//                   <div className="flex-1">
+//                   <div className="flex-1 overflow-auto">
 //                     <button
 //                       onClick={() => setMobileFilterView("status")}
 //                       className="w-full flex items-center justify-between p-4 border-b hover:bg-gray-50"
@@ -438,6 +425,7 @@
 //                       <span>Product status</span>
 //                       <ChevronDown className="w-5 h-5 rotate-[-90deg]" />
 //                     </button>
+
 //                     <button
 //                       onClick={() => setMobileFilterView("price")}
 //                       className="w-full flex items-center justify-between p-4 border-b hover:bg-gray-50"
@@ -445,10 +433,9 @@
 //                       <span>Price</span>
 //                       <ChevronDown className="w-5 h-5 rotate-[-90deg]" />
 //                     </button>
+
 //                     <div className="p-4 border-b">
-//                       <div className="flex items-center justify-between mb-2">
-//                         <span>Sort by:</span>
-//                       </div>
+//                       <div className="mb-2">Sort by:</div>
 //                       <select
 //                         value={sortBy}
 //                         onChange={(e) => setSortBy(e.target.value)}
@@ -467,13 +454,13 @@
 //                     <div className="flex space-x-3">
 //                       <button
 //                         onClick={clearFilters}
-//                         className="flex-1 py-3 px-4 border border-gray-300 rounded-md text-center"
+//                         className="flex-1 py-3 border border-gray-300 rounded-md"
 //                       >
 //                         Remove all
 //                       </button>
 //                       <button
 //                         onClick={applyFilters}
-//                         className="flex-1 py-3 px-4 bg-black text-white rounded-md"
+//                         className="flex-1 py-3 bg-black text-white rounded-md"
 //                       >
 //                         Apply
 //                       </button>
@@ -493,10 +480,6 @@
 //                     <button onClick={() => setShowMobileFilter(false)}>
 //                       <X className="w-5 h-5" />
 //                     </button>
-//                   </div>
-
-//                   <div className="text-center py-2 text-sm text-gray-600 border-b">
-//                     {getFilteredProductCount()} of {products.length} products
 //                   </div>
 
 //                   <div className="flex-1 p-4">
@@ -536,13 +519,13 @@
 //                     <div className="flex space-x-3">
 //                       <button
 //                         onClick={clearFilters}
-//                         className="flex-1 py-3 px-4 border border-gray-300 rounded-md text-center"
+//                         className="flex-1 py-3 border border-gray-300 rounded-md"
 //                       >
 //                         Clear
 //                       </button>
 //                       <button
 //                         onClick={applyFilters}
-//                         className="flex-1 py-3 px-4 bg-black text-white rounded-md"
+//                         className="flex-1 py-3 bg-black text-white rounded-md"
 //                       >
 //                         Apply
 //                       </button>
@@ -564,34 +547,26 @@
 //                     </button>
 //                   </div>
 
-//                   <div className="text-center py-2 text-sm text-gray-600 border-b">
-//                     {getFilteredProductCount()} products
-//                   </div>
-
 //                   <div className="flex-1 p-4">
-//                     <div className="mb-4">
-//                       <span className="text-sm text-gray-500">
-//                         The highest price is{" "}
-//                         {formatPrice(
-//                           Math.max(
-//                             ...products.map(
-//                               (p) => p.discountPrice || p.originalPrice,
-//                             ),
+//                     <div className="mb-4 text-sm text-gray-500">
+//                       The highest price is{" "}
+//                       {formatPrice(
+//                         Math.max(
+//                           ...products.map(
+//                             (p) => p.discountPrice || p.originalPrice,
 //                           ),
-//                         )}
-//                       </span>
+//                         ),
+//                       )}
 //                     </div>
-
 //                     <div className="space-y-4">
 //                       <div>
 //                         <label className="block text-sm font-medium mb-1">
 //                           From
 //                         </label>
 //                         <div className="flex items-center border border-gray-300 rounded-md">
-//                           <span className="px-3 text-sm">₫</span>
+//                           <span className="px-3">₫</span>
 //                           <input
 //                             type="text"
-//                             placeholder="0"
 //                             value={priceRange.from}
 //                             onChange={(e) =>
 //                               setPriceRange({
@@ -599,7 +574,7 @@
 //                                 from: e.target.value,
 //                               })
 //                             }
-//                             className="flex-1 py-3 px-2 border-0 focus:ring-0"
+//                             className="flex-1 py-3 focus:outline-none"
 //                           />
 //                         </div>
 //                       </div>
@@ -608,16 +583,9 @@
 //                           To
 //                         </label>
 //                         <div className="flex items-center border border-gray-300 rounded-md">
-//                           <span className="px-3 text-sm">₫</span>
+//                           <span className="px-3">₫</span>
 //                           <input
 //                             type="text"
-//                             placeholder={formatPrice(
-//                               Math.max(
-//                                 ...products.map(
-//                                   (p) => p.discountPrice || p.originalPrice,
-//                                 ),
-//                               ),
-//                             )}
 //                             value={priceRange.to}
 //                             onChange={(e) =>
 //                               setPriceRange({
@@ -625,7 +593,7 @@
 //                                 to: e.target.value,
 //                               })
 //                             }
-//                             className="flex-1 py-3 px-2 border-0 focus:ring-0"
+//                             className="flex-1 py-3 focus:outline-none"
 //                           />
 //                         </div>
 //                       </div>
@@ -636,13 +604,13 @@
 //                     <div className="flex space-x-3">
 //                       <button
 //                         onClick={() => setPriceRange({ from: "", to: "" })}
-//                         className="flex-1 py-3 px-4 border border-gray-300 rounded-md text-center"
+//                         className="flex-1 py-3 border border-gray-300 rounded-md"
 //                       >
 //                         Clear
 //                       </button>
 //                       <button
 //                         onClick={applyFilters}
-//                         className="flex-1 py-3 px-4 bg-black text-white rounded-md"
+//                         className="flex-1 py-3 bg-black text-white rounded-md"
 //                       >
 //                         Apply
 //                       </button>
@@ -655,36 +623,34 @@
 //         )}
 
 //         {/* Products Grid */}
-//         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+//         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
 //           {getFilteredProducts().map((product) => (
 //             <div
 //               key={product.id}
 //               className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
 //             >
-//               <div className="aspect-square bg-gray-100">
-//                 <Link href={`/products/${product.id}`}>
-//                   <div className="aspect-square bg-gray-100 cursor-pointer">
-//                     <Image
-//                       src={product.image}
-//                       alt={product.name}
-//                       width={280}
-//                       height={280}
-//                       className="w-full h-full object-cover"
-//                     />
-//                   </div>
-//                 </Link>
-//               </div>
+//               <Link href={`/products/${product.id}`}>
+//                 <div className="aspect-square bg-gray-100">
+//                   <Image
+//                     src={product.image}
+//                     alt={product.name}
+//                     width={300}
+//                     height={300}
+//                     className="w-full h-full object-cover"
+//                   />
+//                 </div>
+//               </Link>
 //               <div className="p-3 md:p-4">
-//                 <h3 className="font-bold text-xs md:text-sm mb-2 uppercase">
+//                 <h3 className="font-bold text-sm mb-2 line-clamp-2">
 //                   {product.name}
 //                 </h3>
-//                 <div className="text-xs md:text-sm text-gray-600">
+//                 <div className="text-sm text-gray-600">
 //                   {product.discountPrice ? (
-//                     <div className="flex items-center space-x-2">
-//                       <span className="text-red-500">
+//                     <div className="flex items-center gap-2">
+//                       <span className="text-red-500 font-medium">
 //                         {formatPrice(product.discountPrice)}
 //                       </span>
-//                       <span className="line-through text-gray-400">
+//                       <span className="line-through text-gray-400 text-xs">
 //                         {formatPrice(product.originalPrice)}
 //                       </span>
 //                     </div>
@@ -708,8 +674,33 @@ import { ChevronDown, X, Filter, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
+// ==================== TYPES ====================
+interface Variant {
+  price: number;
+  discountPrice?: number | null;
+  stock: number;
+}
+
+interface ApiProduct {
+  _id: string;
+  name: string;
+  images?: string[];
+  variants?: Variant[];
+  createdAt: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  originalPrice: number;
+  discountPrice: number | null;
+  image: string;
+  inStock: boolean;
+  createdAt: string;
+}
+
 const ProductCollection = () => {
-  const selectedFilter = "Product status"; // Đã sửa: không dùng useState nữa
+  const selectedFilter = "Product status";
 
   const [showStockFilter, setShowStockFilter] = useState(false);
   const [showPriceFilter, setShowPriceFilter] = useState(false);
@@ -721,7 +712,7 @@ const ProductCollection = () => {
   const [sortBy, setSortBy] = useState("Featured");
   const [stockFilter, setStockFilter] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState({ from: "", to: "" });
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -750,29 +741,30 @@ const ProductCollection = () => {
         const response = await fetch("http://localhost:3000/api/products");
         if (!response.ok) throw new Error("Failed to fetch products");
 
-        const data = await response.json();
+        const data: ApiProduct[] = await response.json();
 
-        setProducts(
-          data.map((product: any) => {
-            const variant = product.variants?.[0] || {};
-            const price = variant.price || 0;
-            const discountPrice = variant.discountPrice || null;
-            const hasValidDiscount =
-              discountPrice && discountPrice < price && discountPrice > 0;
+        const transformedProducts: Product[] = data.map((product) => {
+          const variant = product.variants?.[0] || { price: 0, stock: 0 };
+          const price = variant.price || 0;
+          const discountPrice = variant.discountPrice || null;
+          const hasValidDiscount =
+            discountPrice && discountPrice < price && discountPrice > 0;
 
-            return {
-              id: product._id,
-              name: product.name,
-              originalPrice: price,
-              discountPrice: hasValidDiscount ? discountPrice : null,
-              image: product.images?.[0] || "/img/placeholder.jpg",
-              inStock: variant.stock > 0,
-              createdAt: product.createdAt,
-            };
-          }),
-        );
-      } catch (err: any) {
-        setError(err.message);
+          return {
+            id: product._id,
+            name: product.name,
+            originalPrice: price,
+            discountPrice: hasValidDiscount ? discountPrice : null,
+            image: product.images?.[0] || "/img/placeholder.jpg",
+            inStock: variant.stock > 0,
+            createdAt: product.createdAt,
+          };
+        });
+
+        setProducts(transformedProducts);
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Đã xảy ra lỗi";
+        setError(message);
       } finally {
         setLoading(false);
       }
@@ -873,9 +865,9 @@ const ProductCollection = () => {
   const hasActiveFilters = () =>
     stockFilter.length > 0 || priceRange.from || priceRange.to;
 
-  if (loading) return <div className="text-center py-8">Loading...</div>;
+  if (loading) return <div className="text-center py-8">Đang tải...</div>;
   if (error)
-    return <div className="text-center py-8 text-red-500">Error: {error}</div>;
+    return <div className="text-center py-8 text-red-500">Lỗi: {error}</div>;
 
   return (
     <div className="min-h-screen">
