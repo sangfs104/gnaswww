@@ -567,7 +567,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
             </div>
 
             {/* Thông tin thêm */}
-            <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 border-t border-gray-200">
+            {/* <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 border-t border-gray-200">
               <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
                 <p>
                   <span className="font-medium">Danh mục:</span>{" "}
@@ -590,7 +590,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
                   </p>
                 )}
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
