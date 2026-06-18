@@ -63,15 +63,27 @@ const ProductCollection = () => {
   };
 
   // Helper lấy URL hình ảnh an toàn
+  // const getImageUrl = (imgPath?: string): string => {
+  //   if (!imgPath) return "/img/placeholder.jpg";
+
+  //   if (imgPath.startsWith("http")) return imgPath;
+
+  //   const cleanPath = imgPath.startsWith("/") ? imgPath : `/${imgPath}`;
+  //   return `${process.env.NEXT_PUBLIC_API_URL}${cleanPath}`;
+  // };
   const getImageUrl = (imgPath?: string): string => {
     if (!imgPath) return "/img/placeholder.jpg";
 
-    if (imgPath.startsWith("http")) return imgPath;
+    if (imgPath.startsWith("http")) {
+      // Force https
+      let url = imgPath.replace(/^http:\/\//, "https://");
+      // Thêm /api nếu thiếu
+      url = url.replace(/(https:\/\/[^/]+)(\/products\/images\/)/, "$1/api$2");
+      return url;
+    }
 
-    const cleanPath = imgPath.startsWith("/") ? imgPath : `/${imgPath}`;
-    return `${process.env.NEXT_PUBLIC_API_URL}${cleanPath}`;
+    return `${process.env.NEXT_PUBLIC_API_URL}${imgPath.startsWith("/") ? "" : "/"}${imgPath}`;
   };
-
   // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {

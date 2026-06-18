@@ -69,15 +69,27 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
   };
 
   // Helper để lấy URL hình ảnh an toàn
+  // const getImageUrl = (imgPath?: string): string => {
+  //   if (!imgPath) return "/img/placeholder.jpg";
+
+  //   if (imgPath.startsWith("http")) return imgPath;
+
+  //   const cleanPath = imgPath.startsWith("/") ? imgPath : `/${imgPath}`;
+  //   return `${process.env.NEXT_PUBLIC_API_URL}${cleanPath}`;
+  // };
   const getImageUrl = (imgPath?: string): string => {
     if (!imgPath) return "/img/placeholder.jpg";
 
-    if (imgPath.startsWith("http")) return imgPath;
+    if (imgPath.startsWith("http")) {
+      // Force https
+      let url = imgPath.replace(/^http:\/\//, "https://");
+      // Thêm /api nếu thiếu
+      url = url.replace(/(https:\/\/[^/]+)(\/products\/images\/)/, "$1/api$2");
+      return url;
+    }
 
-    const cleanPath = imgPath.startsWith("/") ? imgPath : `/${imgPath}`;
-    return `${process.env.NEXT_PUBLIC_API_URL}${cleanPath}`;
+    return `${process.env.NEXT_PUBLIC_API_URL}${imgPath.startsWith("/") ? "" : "/"}${imgPath}`;
   };
-
   const getUserId = () => {
     if (typeof window !== "undefined") {
       const storedUser = localStorage.getItem("user");
@@ -102,12 +114,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
       const guestId = localStorage.getItem("guestId");
       if (guestId && guestId !== user.id) {
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/merge`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({ guestId, userId: user.id }),
-          });
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/cart/merge`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ guestId, userId: user.id }),
+            },
+          );
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.error || "Lỗi khi hợp nhất giỏ hàng");
@@ -225,17 +240,20 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
       const userId = getUserId();
       if (!userId) throw new Error("Không tìm thấy userId");
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          userId,
-          productId: product._id,
-          variantId: selectedVariant?._id,
-          quantity,
-        }),
-      });
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/cart/add`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            userId,
+            productId: product._id,
+            variantId: selectedVariant?._id,
+            quantity,
+          }),
+        },
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -273,9 +291,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
       if (!userId) return;
 
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`, {
-          credentials: "include",
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`,
+          {
+            credentials: "include",
+          },
+        );
         if (!res.ok) throw new Error("Không thể tải giỏ hàng");
 
         const data = await res.json();
