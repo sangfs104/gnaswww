@@ -52,9 +52,12 @@ const Header = () => {
   const fetchCart = async () => {
     if (!userId) return;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`, {
-        credentials: "include",
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`,
+        {
+          credentials: "include",
+        },
+      );
       if (!res.ok) throw new Error("Failed to fetch cart");
       const data = await res.json();
       setCart(data);
