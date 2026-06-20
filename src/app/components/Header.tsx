@@ -178,7 +178,7 @@ const Header = () => {
         {/* Center Section - Logo */}
         {/* Center Section - Logo */}
         <div className="text-center group">
-          <Image
+          {/* <Image
             width={520}
             height={130}
             src="/img/Logo typography cá m1.png"
@@ -193,6 +193,22 @@ const Header = () => {
                group-hover:scale-110 
                transition-all duration-700 ease-out
                group-hover:drop-shadow-2xl"
+          /> */}
+          <Image
+            width={520}
+            height={130}
+            src="/img/Logo typography cá m1.png"
+            alt="Offon Logo"
+            className="w-[340px] h-[85px] 
+       sm:w-[220px] sm:h-[55px] 
+       md:w-[240px] md:h-[60px] 
+       lg:w-[260px] lg:h-[65px] 
+       object-contain 
+       animate-float 
+       group-hover:rotate-[360deg] 
+       group-hover:scale-110 
+       transition-all duration-700 ease-out
+       group-hover:drop-shadow-2xl"
           />
         </div>
         {/* Right Section */}
