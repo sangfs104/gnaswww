@@ -62,15 +62,6 @@ const ProductCollection = () => {
     }).format(price);
   };
 
-  // Helper lấy URL hình ảnh an toàn
-  // const getImageUrl = (imgPath?: string): string => {
-  //   if (!imgPath) return "/img/placeholder.jpg";
-
-  //   if (imgPath.startsWith("http")) return imgPath;
-
-  //   const cleanPath = imgPath.startsWith("/") ? imgPath : `/${imgPath}`;
-  //   return `${process.env.NEXT_PUBLIC_API_URL}${cleanPath}`;
-  // };
   const getImageUrl = (imgPath?: string): string => {
     if (!imgPath) return "/img/placeholder.jpg";
 
