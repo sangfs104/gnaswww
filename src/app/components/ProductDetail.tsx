@@ -77,18 +77,29 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
   //   const cleanPath = imgPath.startsWith("/") ? imgPath : `/${imgPath}`;
   //   return `${process.env.NEXT_PUBLIC_API_URL}${cleanPath}`;
   // };
+  // const getImageUrl = (imgPath?: string): string => {
+  //   if (!imgPath) return "/img/placeholder.jpg";
+
+  //   if (imgPath.startsWith("http")) {
+  //     // Force https
+  //     let url = imgPath.replace(/^http:\/\//, "https://");
+  //     // Thêm /api nếu thiếu
+  //     url = url.replace(/(https:\/\/[^/]+)(\/products\/images\/)/, "$1/api$2");
+  //     return url;
+  //   }
+
+  //   return `${process.env.NEXT_PUBLIC_API_URL}${imgPath.startsWith("/") ? "" : "/"}${imgPath}`;
+  // };
+  // Backend giờ đã trả full URL sẵn cho cả product.images và variant.image,
+  // nên chỉ cần fallback khi thiếu, không cần tự chèn /api nữa
   const getImageUrl = (imgPath?: string): string => {
     if (!imgPath) return "/img/placeholder.jpg";
-
     if (imgPath.startsWith("http")) {
-      // Force https
-      let url = imgPath.replace(/^http:\/\//, "https://");
-      // Thêm /api nếu thiếu
-      url = url.replace(/(https:\/\/[^/]+)(\/products\/images\/)/, "$1/api$2");
-      return url;
+      return imgPath.replace(/^http:\/\//, "https://");
     }
-
-    return `${process.env.NEXT_PUBLIC_API_URL}${imgPath.startsWith("/") ? "" : "/"}${imgPath}`;
+    return `${process.env.NEXT_PUBLIC_API_URL}${
+      imgPath.startsWith("/") ? "" : "/"
+    }${imgPath}`;
   };
   const getUserId = () => {
     if (typeof window !== "undefined") {
