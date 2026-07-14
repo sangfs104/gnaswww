@@ -388,6 +388,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
                 alt={product.name}
                 width={500}
                 height={500}
+                unoptimized
                 className="w-full h-full object-cover"
                 priority
               />
@@ -417,6 +418,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
                     alt={`Hình ${index + 1}`}
                     width={80}
                     height={80}
+                    unoptimized
                     className="w-full h-full object-cover"
                   />
                 </button>
