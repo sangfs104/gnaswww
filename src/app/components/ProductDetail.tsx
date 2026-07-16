@@ -481,7 +481,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
               </p>
             </div>
 
-            <div className="text-xs sm:text-sm text-gray-600">
+            {/* <div className="text-xs sm:text-sm text-gray-600">
               <p>
                 Thanh toán trong 4 lần không lãi suất với{" "}
                 <strong>{formatPrice(effectivePrice / 4)}</strong> bằng
@@ -495,7 +495,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
                   Tìm hiểu thêm
                 </button>
               </div>
-            </div>
+            </div> */}
 
             {/* Chọn biến thể */}
             {hasVariants && (
