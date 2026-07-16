@@ -199,16 +199,16 @@ const Header = () => {
             height={130}
             src="/img/Logo typography cá m1.png"
             alt="Offon Logo"
-            className="w-[340px] h-[85px] 
-       sm:w-[220px] sm:h-[55px] 
-       md:w-[240px] md:h-[60px] 
-       lg:w-[260px] lg:h-[65px] 
-       object-contain 
-       animate-float 
-       group-hover:rotate-[360deg] 
-       group-hover:scale-110 
-       transition-all duration-700 ease-out
-       group-hover:drop-shadow-2xl"
+            className="w-[680px] h-[170px] 
+     sm:w-[440px] sm:h-[110px] 
+     md:w-[480px] md:h-[120px] 
+     lg:w-[520px] lg:h-[130px] 
+     object-contain 
+     animate-float 
+     group-hover:rotate-[360deg] 
+     group-hover:scale-110 
+     transition-all duration-700 ease-out
+     group-hover:drop-shadow-2xl"
           />
         </div>
         {/* Right Section */}
