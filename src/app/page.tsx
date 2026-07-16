@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <div
       className="relative w-full h-screen bg-cover bg-center"
-      style={{ backgroundImage: "url('/img/placeholder1.jpg')" }}
+      style={{ backgroundImage: "url('/img/placeholder.jpg')" }}
     >
       {/* Overlay */}
       <div className="absolute inset-0 bg-black/40" />
