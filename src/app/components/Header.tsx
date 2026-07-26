@@ -301,6 +301,7 @@
 
 // export default Header;
 "use client";
+
 import React, { useState, useEffect } from "react";
 import { Search, ShoppingBag, User } from "lucide-react";
 import Image from "next/image";
@@ -325,7 +326,6 @@ const Header = () => {
   const [cart, setCart] = useState<CartType>({ items: [] });
   const [loggedInUser, setLoggedInUser] = useState<StoredUser | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-
   const router = useRouter();
   const reduxUser = useSelector((state: RootState) => state.auth.user);
 
@@ -512,21 +512,24 @@ const Header = () => {
         >
           SHOP
         </Link>
-        
+
+        <a
           href="#"
           className="block py-2 hover:underline"
           onClick={() => setIsMenuOpen(false)}
         >
           CONTACT
         </a>
-        
+
+        <a
           href="#"
           className="block py-2 hover:underline"
           onClick={() => setIsMenuOpen(false)}
         >
           TERMS & SHIPPING
         </a>
-        
+
+        <a
           href="#"
           className="block py-2 hover:underline"
           onClick={() => setIsMenuOpen(false)}
