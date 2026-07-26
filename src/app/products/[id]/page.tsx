@@ -1,11 +1,15 @@
+// // }
 // import ProductDetail from "../../components/ProductDetail";
 
 // export default async function ProductPage({
 //   params,
 // }: {
-//   params: { id: string };
+//   params: Promise<{ id: string }>; // ← Quan trọng: dùng Promise
 // }) {
-//   const res = await fetch(`http://localhost:3000/api/products/${params.id}`, {
+//   // Await params trước khi dùng
+//   const { id } = await params;
+
+//   const res = await fetch(`https://gansbee.onrender.com/api/products/${id}`, {
 //     cache: "no-store", // luôn lấy data mới
 //   });
 
@@ -45,5 +49,12 @@ export default async function ProductPage({
 
   const product = await res.json();
 
-  return <ProductDetail initialProduct={product} />;
+  // ✅ FIX: thêm key={product._id} (hoặc id nếu product không có _id)
+  // để React unmount hoàn toàn instance cũ và mount lại instance mới
+  // mỗi khi chuyển sang xem sản phẩm khác. Nếu không có key,
+  // React có thể tái sử dụng lại cùng component instance (vì cùng
+  // vị trí trong tree / cùng component type), khiến state cũ
+  // (product, selectedVariant, combinedImages...) bị giữ lại
+  // trong một khoảng thời gian ngắn trước khi cập nhật.
+  return <ProductDetail key={product._id ?? id} initialProduct={product} />;
 }
