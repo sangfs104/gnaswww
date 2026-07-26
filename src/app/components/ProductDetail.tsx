@@ -49,7 +49,8 @@
 // }
 
 // const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
-//   const [product] = useState<Product>(initialProduct);
+//   // ✅ FIX: dùng setProduct để có thể đồng bộ lại khi prop initialProduct đổi
+//   const [product, setProduct] = useState<Product>(initialProduct);
 //   const [loading, setLoading] = useState<boolean>(false);
 //   const [error, setError] = useState<string | null>(null);
 //   const [success, setSuccess] = useState<string | null>(null);
@@ -68,28 +69,6 @@
 //     }).format(price);
 //   };
 
-//   // Helper để lấy URL hình ảnh an toàn
-//   // const getImageUrl = (imgPath?: string): string => {
-//   //   if (!imgPath) return "/img/placeholder.jpg";
-
-//   //   if (imgPath.startsWith("http")) return imgPath;
-
-//   //   const cleanPath = imgPath.startsWith("/") ? imgPath : `/${imgPath}`;
-//   //   return `${process.env.NEXT_PUBLIC_API_URL}${cleanPath}`;
-//   // };
-//   // const getImageUrl = (imgPath?: string): string => {
-//   //   if (!imgPath) return "/img/placeholder.jpg";
-
-//   //   if (imgPath.startsWith("http")) {
-//   //     // Force https
-//   //     let url = imgPath.replace(/^http:\/\//, "https://");
-//   //     // Thêm /api nếu thiếu
-//   //     url = url.replace(/(https:\/\/[^/]+)(\/products\/images\/)/, "$1/api$2");
-//   //     return url;
-//   //   }
-
-//   //   return `${process.env.NEXT_PUBLIC_API_URL}${imgPath.startsWith("/") ? "" : "/"}${imgPath}`;
-//   // };
 //   // Backend giờ đã trả full URL sẵn cho cả product.images và variant.image,
 //   // nên chỉ cần fallback khi thiếu, không cần tự chèn /api nữa
 //   const getImageUrl = (imgPath?: string): string => {
@@ -101,6 +80,7 @@
 //       imgPath.startsWith("/") ? "" : "/"
 //     }${imgPath}`;
 //   };
+
 //   const getUserId = () => {
 //     if (typeof window !== "undefined") {
 //       const storedUser = localStorage.getItem("user");
@@ -117,6 +97,22 @@
 //     }
 //     return "";
 //   };
+
+//   // ✅ FIX QUAN TRỌNG NHẤT:
+//   // Khi initialProduct (prop truyền từ trang cha) thay đổi — do người dùng
+//   // chuyển sang xem sản phẩm khác — đồng bộ lại toàn bộ state nội bộ.
+//   // Nếu không có effect này, "product" cũ (từ useState ban đầu) sẽ được
+//   // giữ nguyên trong bộ nhớ component cho tới khi Next.js remount lại,
+//   // gây ra hiện tượng hiển thị ảnh/thông tin sản phẩm cũ trong một khoảng
+//   // thời gian ngắn trước khi cập nhật đúng sản phẩm mới.
+//   useEffect(() => {
+//     setProduct(initialProduct);
+//     setSelectedVariant(null);
+//     setQuantity(1);
+//     setSelectedImageIndex(0);
+//     setError(null);
+//     setSuccess(null);
+//   }, [initialProduct]);
 
 //   // Hợp nhất giỏ hàng khi user đăng nhập
 //   useEffect(() => {
@@ -481,22 +477,6 @@
 //               </p>
 //             </div>
 
-//             {/* <div className="text-xs sm:text-sm text-gray-600">
-//               <p>
-//                 Thanh toán trong 4 lần không lãi suất với{" "}
-//                 <strong>{formatPrice(effectivePrice / 4)}</strong> bằng
-//               </p>
-//               <div className="flex items-center mt-1">
-//                 <span className="bg-purple-600 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded text-xs font-semibold">
-//                   Shop
-//                 </span>
-//                 <span className="text-purple-600 font-semibold ml-1">Pay</span>
-//                 <button className="ml-1 sm:ml-2 text-purple-600 underline text-xs">
-//                   Tìm hiểu thêm
-//                 </button>
-//               </div>
-//             </div> */}
-
 //             {/* Chọn biến thể */}
 //             {hasVariants && (
 //               <div className="space-y-2 sm:space-y-3">
@@ -578,32 +558,6 @@
 //                 Các tùy chọn thanh toán khác
 //               </button>
 //             </div>
-
-//             {/* Thông tin thêm */}
-//             {/* <div className="space-y-3 sm:space-y-4 pt-4 sm:pt-6 border-t border-gray-200">
-//               <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
-//                 <p>
-//                   <span className="font-medium">Danh mục:</span>{" "}
-//                   {product.category?.name || "Không có danh mục"}
-//                 </p>
-//                 <p>
-//                   <span className="font-medium">Mô tả:</span>{" "}
-//                   {product.description || "Không có mô tả"}
-//                 </p>
-//                 <p>
-//                   <span className="font-medium">Ngày tạo:</span>{" "}
-//                   {new Date(product.createdAt).toLocaleString("vi-VN")}
-//                 </p>
-//                 {hasVariants && (
-//                   <p>
-//                     <span className="font-medium">Các biến thể có sẵn:</span>{" "}
-//                     {product
-//                       .variants!.map((v) => `${v.size}/${v.color}`)
-//                       .join(", ")}
-//                   </p>
-//                 )}
-//               </div>
-//             </div> */}
 //           </div>
 //         </div>
 //       </div>
@@ -613,7 +567,7 @@
 
 // export default ProductDetail;
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   ChevronDown,
   Minus,
@@ -645,12 +599,11 @@ interface Variant {
   image?: string;
 }
 
-// ✅ Product interface khớp với CartSlice (images là required string[])
 interface Product {
   _id: string;
   name: string;
   price: number;
-  images: string[]; // ← required, không optional
+  images: string[];
   variants?: Variant[];
   category?: { name: string };
   description?: string;
@@ -662,16 +615,27 @@ interface ProductDetailProps {
   initialProduct: Product;
 }
 
+// Đưa getImageUrl ra ngoài component vì nó không phụ thuộc state/props gì cả
+const getImageUrl = (imgPath?: string): string => {
+  if (!imgPath) return "/img/placeholder.jpg";
+  if (imgPath.startsWith("http")) {
+    return imgPath.replace(/^http:\/\//, "https://");
+  }
+  return `${process.env.NEXT_PUBLIC_API_URL}${
+    imgPath.startsWith("/") ? "" : "/"
+  }${imgPath}`;
+};
+
 const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
-  // ✅ FIX: dùng setProduct để có thể đồng bộ lại khi prop initialProduct đổi
   const [product, setProduct] = useState<Product>(initialProduct);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<Variant | null>(
+    initialProduct.variants?.[0] ?? null,
+  );
   const [quantity, setQuantity] = useState<number>(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(0);
-  const [combinedImages, setCombinedImages] = useState<ImageItem[]>([]);
 
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
@@ -681,18 +645,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
       style: "currency",
       currency: "VND",
     }).format(price);
-  };
-
-  // Backend giờ đã trả full URL sẵn cho cả product.images và variant.image,
-  // nên chỉ cần fallback khi thiếu, không cần tự chèn /api nữa
-  const getImageUrl = (imgPath?: string): string => {
-    if (!imgPath) return "/img/placeholder.jpg";
-    if (imgPath.startsWith("http")) {
-      return imgPath.replace(/^http:\/\//, "https://");
-    }
-    return `${process.env.NEXT_PUBLIC_API_URL}${
-      imgPath.startsWith("/") ? "" : "/"
-    }${imgPath}`;
   };
 
   const getUserId = () => {
@@ -712,16 +664,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
     return "";
   };
 
-  // ✅ FIX QUAN TRỌNG NHẤT:
-  // Khi initialProduct (prop truyền từ trang cha) thay đổi — do người dùng
-  // chuyển sang xem sản phẩm khác — đồng bộ lại toàn bộ state nội bộ.
-  // Nếu không có effect này, "product" cũ (từ useState ban đầu) sẽ được
-  // giữ nguyên trong bộ nhớ component cho tới khi Next.js remount lại,
-  // gây ra hiện tượng hiển thị ảnh/thông tin sản phẩm cũ trong một khoảng
-  // thời gian ngắn trước khi cập nhật đúng sản phẩm mới.
+  // ✅ Đồng bộ lại state khi initialProduct (prop) đổi — khi chuyển sản phẩm
   useEffect(() => {
     setProduct(initialProduct);
-    setSelectedVariant(null);
+    setSelectedVariant(initialProduct.variants?.[0] ?? null);
     setQuantity(1);
     setSelectedImageIndex(0);
     setError(null);
@@ -761,9 +707,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
     mergeCart();
   }, [user?.id, dispatch]);
 
-  // Xử lý hình ảnh và biến thể
-  useEffect(() => {
-    if (!product) return;
+  // ✅ FIX QUAN TRỌNG: tính combinedImages bằng useMemo NGAY TRONG LÚC RENDER,
+  // không dùng useState + useEffect nữa.
+  // Trước đây combinedImages khởi tạo là [] rồi mới được set qua useEffect
+  // (chạy SAU khi component đã render/commit lần đầu) → tạo ra một khoảng
+  // "trống" mà src ảnh fallback về /img/placeholder.jpg trước khi ảnh thật
+  // được gán vào. Với useMemo, giá trị được tính ngay trong render đầu tiên,
+  // dựa trực tiếp trên `product` hiện tại — không còn khoảng trống này nữa.
+  const combinedImages: ImageItem[] = useMemo(() => {
+    if (!product) return [];
 
     const productImages: ImageItem[] = (product.images || []).map(
       (img, idx) => ({
@@ -782,14 +734,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
         index: idx,
       }));
 
-    const allImages = [...productImages, ...variantImages];
-    setCombinedImages(allImages);
+    return [...productImages, ...variantImages];
+  }, [product]);
+
+  // Khi product đổi, đặt lại selectedImageIndex theo variant đầu tiên (nếu có)
+  useEffect(() => {
+    if (!product) return;
 
     if ((product.variants?.length ?? 0) > 0) {
       const firstVariant = product.variants![0];
-      setSelectedVariant(firstVariant);
-
-      const firstVariantImageIndex = allImages.findIndex(
+      const firstVariantImageIndex = combinedImages.findIndex(
         (img) => img.type === "variant" && img.variantId === firstVariant._id,
       );
       setSelectedImageIndex(
@@ -798,6 +752,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
     } else {
       setSelectedImageIndex(0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product]);
 
   // Cập nhật ảnh khi chọn variant
@@ -881,7 +836,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
         throw new Error(errorData.error || "Không thể thêm vào giỏ hàng");
       }
 
-      // ✅ Đảm bảo images luôn là string[] (không undefined)
       dispatch(
         addToCart({
           product: {
@@ -926,7 +880,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
             addToCart({
               product: {
                 ...item.product,
-                images: item.product.images ?? [], // ✅ đảm bảo không undefined
+                images: item.product.images ?? [],
               },
               variant: item.variant,
               quantity: item.quantity,
@@ -945,7 +899,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
     return () => window.removeEventListener("cart-updated", updateCart);
   }, [dispatch]);
 
-  // Tính giá
   const effectivePrice = selectedVariant
     ? selectedVariant.discountPrice &&
       selectedVariant.discountPrice < selectedVariant.price
@@ -980,7 +933,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
   return (
     <div className="min-h-screen bg-white">
       <div className="px-4 sm:px-8 md:px-16 lg:px-60 py-4 sm:py-6 md:py-8">
-        {/* Thông báo lỗi / thành công */}
         {error && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md text-sm">
             {error}
@@ -993,7 +945,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-12 mb-8 sm:mb-12 lg:mb-16">
-          {/* Phần hình ảnh */}
           <div className="space-y-3 sm:space-y-4">
             <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
               {isOnSale && (
@@ -1055,7 +1006,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
             </div>
           </div>
 
-          {/* Phần thông tin sản phẩm */}
           <div className="space-y-4 sm:space-y-6">
             <div>
               <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4">
@@ -1091,7 +1041,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
               </p>
             </div>
 
-            {/* Chọn biến thể */}
             {hasVariants && (
               <div className="space-y-2 sm:space-y-3">
                 <label className="block text-xs sm:text-sm font-medium">
@@ -1121,7 +1070,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
               </div>
             )}
 
-            {/* Số lượng */}
             <div className="space-y-2 sm:space-y-3">
               <label className="block text-xs sm:text-sm font-medium">
                 Số lượng
@@ -1149,7 +1097,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ initialProduct }) => {
               </div>
             </div>
 
-            {/* Nút hành động */}
             <div className="space-y-2 sm:space-y-3">
               <button
                 className="w-full py-3 sm:py-4 border-2 border-black text-black font-semibold rounded-md hover:bg-black hover:text-white transition-colors text-xs sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
