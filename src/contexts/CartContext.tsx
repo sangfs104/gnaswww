@@ -1,6 +1,12 @@
 // "use client";
 
-// import { createContext, useContext, useState, useEffect } from "react";
+// import {
+//   createContext,
+//   useContext,
+//   useState,
+//   useEffect,
+//   useCallback,
+// } from "react";
 
 // interface CartItem {
 //   _id: string;
@@ -9,7 +15,6 @@
 //     name: string;
 //     price: number;
 //     images: string[];
-//     // Thêm các chi tiết sản phẩm khác nếu cần
 //   };
 //   variant?: {
 //     _id: string;
@@ -17,17 +22,15 @@
 //     color: string;
 //     price: number;
 //     image: string;
-//     // Thêm chi tiết biến thể khác
 //   };
 //   quantity: number;
-//   // Thêm các trường khác nếu cần
 // }
 
 // interface CartContextType {
 //   cartItems: CartItem[];
 //   setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
 //   fetchCart: () => Promise<void>;
-//   // Thêm các hàm khác như updateQuantity, removeItem nếu cần di chuyển vào context
+//   // Có thể thêm sau: addToCart, removeFromCart, updateQuantity...
 // }
 
 // const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -35,38 +38,45 @@
 // export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 //   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
-//   const getUserId = () => {
-//     if (typeof window !== "undefined") {
-//       const user = JSON.parse(localStorage.getItem("user") || "null");
-//       if (user?.id) return user.id;
-//       return localStorage.getItem("guestId") || "";
-//     }
-//     return "";
-//   };
+//   const getUserId = useCallback((): string => {
+//     if (typeof window === "undefined") return "";
+
+//     const user = JSON.parse(localStorage.getItem("user") || "null");
+//     if (user?.id) return user.id;
+
+//     return localStorage.getItem("guestId") || "";
+//   }, []);
 
 //   const userId = getUserId();
 
-//   const fetchCart = async () => {
+//   const fetchCart = useCallback(async () => {
 //     if (!userId) {
 //       setCartItems([]);
 //       return;
 //     }
+
 //     try {
-//       const res = await fetch(`http://localhost:3000/api/cart/${userId}`, {
-//         credentials: "include",
-//       });
+//       const res = await fetch(
+//         `${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`,
+//         {
+//           credentials: "include",
+//         },
+//       );
+
 //       if (!res.ok) throw new Error("Không thể tải giỏ hàng");
+
 //       const data = await res.json();
 //       setCartItems(data.items || []);
 //     } catch (err) {
-//       console.error(err);
+//       console.error("Fetch cart error:", err);
 //       setCartItems([]);
 //     }
-//   };
+//   }, [userId]);
 
+//   // Fetch cart khi userId thay đổi
 //   useEffect(() => {
 //     fetchCart();
-//   }, [userId]);
+//   }, [fetchCart]);
 
 //   return (
 //     <CartContext.Provider value={{ cartItems, setCartItems, fetchCart }}>
@@ -91,6 +101,8 @@ import {
   useEffect,
   useCallback,
 } from "react";
+// ⚠️ Chỉnh lại đường dẫn cho khớp vị trí thật của file auth.ts trong project bạn
+import { getUser, getGuestId } from "../lib/auth";
 
 interface CartItem {
   _id: string;
@@ -114,7 +126,6 @@ interface CartContextType {
   cartItems: CartItem[];
   setCartItems: React.Dispatch<React.SetStateAction<CartItem[]>>;
   fetchCart: () => Promise<void>;
-  // Có thể thêm sau: addToCart, removeFromCart, updateQuantity...
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -122,13 +133,12 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 
+  // ✅ Dùng chung 1 nguồn lấy userId với ShoppingCart.tsx và CheckoutPage
   const getUserId = useCallback((): string => {
     if (typeof window === "undefined") return "";
-
-    const user = JSON.parse(localStorage.getItem("user") || "null");
+    const user = getUser();
     if (user?.id) return user.id;
-
-    return localStorage.getItem("guestId") || "";
+    return getGuestId() || "";
   }, []);
 
   const userId = getUserId();
@@ -140,9 +150,13 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`, {
-        credentials: "include",
-      });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`,
+        {
+          credentials: "include",
+          cache: "no-store", // ✅ luôn lấy dữ liệu mới nhất, tránh browser cache
+        },
+      );
 
       if (!res.ok) throw new Error("Không thể tải giỏ hàng");
 
@@ -157,6 +171,13 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   // Fetch cart khi userId thay đổi
   useEffect(() => {
     fetchCart();
+  }, [fetchCart]);
+
+  // ✅ Tự động refetch mỗi khi có nơi khác báo "cart-updated"
+  // (ví dụ: sau khi xóa/sửa sản phẩm ở trang giỏ hàng)
+  useEffect(() => {
+    window.addEventListener("cart-updated", fetchCart);
+    return () => window.removeEventListener("cart-updated", fetchCart);
   }, [fetchCart]);
 
   return (

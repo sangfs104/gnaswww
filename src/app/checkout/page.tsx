@@ -3,6 +3,12 @@
 // import { useState, useEffect } from "react";
 // import { useRouter } from "next/navigation";
 // import Image from "next/image";
+// import {
+//   getToken,
+//   getUser,
+//   getGuestId,
+//   clearAuth,
+// } from "../../../src/lib/auth";
 
 // // ==================== TYPES ====================
 
@@ -53,12 +59,9 @@
 // // ==================== HELPERS ====================
 
 // const getUserId = () => {
-//   if (typeof window !== "undefined") {
-//     const user = JSON.parse(localStorage.getItem("user") || "null");
-//     if (user?.id) return user.id;
-//     return localStorage.getItem("guestId") || "";
-//   }
-//   return "";
+//   const authUser = getUser();
+//   if (authUser?.id) return authUser.id;
+//   return getGuestId();
 // };
 
 // const getEffectivePrice = (item: CartItem): number => {
@@ -128,11 +131,19 @@
 //       currency: "VND",
 //     }).format(price);
 
+//   // Đưa người dùng về login + dọn localStorage khi phát hiện chưa đăng nhập / token hết hạn / server trả 401
+//   const redirectToLogin = () => {
+//     clearAuth();
+//     router.push("/login?redirect=/checkout");
+//   };
+
 //   useEffect(() => {
-//     // Bắt đăng nhập trước khi vào trang thanh toán
-//     const token = localStorage.getItem("token");
+//     // Dùng getToken() thay vì đọc thẳng localStorage.getItem("token"):
+//     // getToken() tự kiểm tra JWT hết hạn và tự dọn dẹp nếu hết hạn,
+//     // nên Header và Checkout luôn đồng bộ cùng 1 trạng thái đăng nhập.
+//     const token = getToken();
 //     if (!token) {
-//       router.push("/login?redirect=/checkout");
+//       redirectToLogin();
 //       return;
 //     }
 
@@ -144,6 +155,10 @@
 //             credentials: "include",
 //           },
 //         );
+//         if (res.status === 401) {
+//           redirectToLogin();
+//           return;
+//         }
 //         if (!res.ok) throw new Error("Không thể tải giỏ hàng");
 //         const data = await res.json();
 //         setCartItems(data.items || []);
@@ -163,6 +178,10 @@
 //             credentials: "include",
 //           },
 //         );
+//         if (res.status === 401) {
+//           redirectToLogin();
+//           return;
+//         }
 //         if (!res.ok) {
 //           const errorData = await res.json().catch(() => ({}));
 //           throw new Error(errorData.error || "Không thể tải danh sách địa chỉ");
@@ -182,6 +201,7 @@
 
 //     fetchCart();
 //     fetchAddresses();
+//     // eslint-disable-next-line react-hooks/exhaustive-deps
 //   }, [userId, router]);
 
 //   const subtotal = cartItems.reduce(
@@ -206,9 +226,12 @@
 
 //   const handleCheckout = async (e: React.FormEvent) => {
 //     e.preventDefault();
-//     const token = localStorage.getItem("token");
+
+//     // Kiểm tra lại token ngay tại thời điểm submit (phòng trường hợp
+//     // token hết hạn giữa lúc user đang điền form checkout)
+//     const token = getToken();
 //     if (!token) {
-//       router.push("/login?redirect=/checkout");
+//       redirectToLogin();
 //       return;
 //     }
 //     if (!selectedAddress && !useNewAddress) {
@@ -258,6 +281,10 @@
 //         body: JSON.stringify(payload),
 //       });
 
+//       if (res.status === 401) {
+//         redirectToLogin();
+//         return;
+//       }
 //       if (!res.ok) {
 //         const errorData = await res.json().catch(() => ({}));
 //         throw new Error(errorData.error || "Thanh toán thất bại");
@@ -632,9 +659,6 @@
 // };
 
 // // ==================== STYLES ====================
-// // Scoped design tokens + the receipt-notch signature detail.
-// // For production, move the @import into next/font in your root layout
-// // instead of loading it per-page.
 
 // const CheckoutStyles = () => (
 //   <style jsx global>{`
@@ -756,7 +780,6 @@
 //       color: var(--muted);
 //     }
 
-//     /* Receipt-inspired order summary */
 //     .checkout-receipt {
 //       background: var(--surface);
 //       border: 1px solid var(--line);
@@ -839,7 +862,6 @@
 // );
 
 // export default CheckoutPage;
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -973,43 +995,44 @@ const CheckoutPage = () => {
       currency: "VND",
     }).format(price);
 
-  // Đưa người dùng về login + dọn localStorage khi phát hiện chưa đăng nhập / token hết hạn / server trả 401
   const redirectToLogin = () => {
     clearAuth();
     router.push("/login?redirect=/checkout");
   };
 
+  // ✅ Tách fetchCart ra ngoài để có thể tái sử dụng (mount, event, trước khi submit)
+  const fetchCart = async () => {
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`,
+        {
+          credentials: "include",
+          cache: "no-store", // ✅ luôn lấy dữ liệu mới nhất từ server
+        },
+      );
+      if (res.status === 401) {
+        redirectToLogin();
+        return [];
+      }
+      if (!res.ok) throw new Error("Không thể tải giỏ hàng");
+      const data = await res.json();
+      const items: CartItem[] = data.items || [];
+      setCartItems(items);
+      return items;
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Đã xảy ra lỗi khi tải giỏ hàng",
+      );
+      return [];
+    }
+  };
+
   useEffect(() => {
-    // Dùng getToken() thay vì đọc thẳng localStorage.getItem("token"):
-    // getToken() tự kiểm tra JWT hết hạn và tự dọn dẹp nếu hết hạn,
-    // nên Header và Checkout luôn đồng bộ cùng 1 trạng thái đăng nhập.
     const token = getToken();
     if (!token) {
       redirectToLogin();
       return;
     }
-
-    const fetchCart = async () => {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`,
-          {
-            credentials: "include",
-          },
-        );
-        if (res.status === 401) {
-          redirectToLogin();
-          return;
-        }
-        if (!res.ok) throw new Error("Không thể tải giỏ hàng");
-        const data = await res.json();
-        setCartItems(data.items || []);
-      } catch (err: unknown) {
-        setError(
-          err instanceof Error ? err.message : "Đã xảy ra lỗi khi tải giỏ hàng",
-        );
-      }
-    };
 
     const fetchAddresses = async () => {
       try {
@@ -1046,6 +1069,14 @@ const CheckoutPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, router]);
 
+  // ✅ Nếu ở trang giỏ hàng bạn vừa xóa sản phẩm rồi bấm "Thanh toán" ngay,
+  // event này đảm bảo trang Checkout tự cập nhật lại đúng giỏ hàng mới nhất
+  useEffect(() => {
+    window.addEventListener("cart-updated", fetchCart);
+    return () => window.removeEventListener("cart-updated", fetchCart);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
   const subtotal = cartItems.reduce(
     (total, item) => total + getEffectivePrice(item) * item.quantity,
     0,
@@ -1069,8 +1100,6 @@ const CheckoutPage = () => {
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Kiểm tra lại token ngay tại thời điểm submit (phòng trường hợp
-    // token hết hạn giữa lúc user đang điền form checkout)
     const token = getToken();
     if (!token) {
       redirectToLogin();
@@ -1078,10 +1107,6 @@ const CheckoutPage = () => {
     }
     if (!selectedAddress && !useNewAddress) {
       setError("Vui lòng chọn hoặc nhập địa chỉ giao hàng.");
-      return;
-    }
-    if (cartItems.length === 0) {
-      setError("Giỏ hàng trống.");
       return;
     }
     if (
@@ -1100,13 +1125,29 @@ const CheckoutPage = () => {
     setError(null);
 
     try {
+      // ✅ QUAN TRỌNG: refetch giỏ hàng ngay trước khi submit, không dùng
+      // "cartItems" cũ trong state/closure — đảm bảo sản phẩm đã bị xóa
+      // trước đó chắc chắn không được gửi lên server nữa.
+      const freshItems = await fetchCart();
+
+      if (freshItems.length === 0) {
+        setError("Giỏ hàng trống.");
+        setSubmitting(false);
+        return;
+      }
+
+      const freshSubtotal = freshItems.reduce(
+        (total, item) => total + getEffectivePrice(item) * item.quantity,
+        0,
+      );
+
       const payload = {
-        products: cartItems.map((item) => ({
+        products: freshItems.map((item) => ({
           product: item.product._id,
           variant: item.variant?._id,
           quantity: item.quantity,
         })),
-        totalPrice: subtotal,
+        totalPrice: freshSubtotal,
         paymentMethod,
         ...(useNewAddress
           ? { newShippingAddress: newAddress }
@@ -1134,7 +1175,9 @@ const CheckoutPage = () => {
 
       const createdOrder = await res.json();
 
-      // Xóa giỏ hàng phía client (giỏ hàng thật đã được xử lý ở backend nếu có logic riêng)
+      // ✅ Xóa sạch giỏ hàng phía client ngay sau khi đặt hàng thành công,
+      // để nếu user quay lại trang giỏ hàng/checkout sẽ không thấy sản phẩm cũ
+      setCartItems([]);
       window.dispatchEvent(new Event("cart-updated"));
 
       router.push(`/order-confirmation?orderId=${createdOrder._id}`);
