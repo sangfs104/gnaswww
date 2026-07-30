@@ -3,7 +3,7 @@ import { useState, useMemo, useCallback } from "react";
 import { ChevronDown, X, Filter, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import type { Product } from "@/app/collections/page";
+import type { Product } from "./type";
 
 const sortOptions = [
   "Featured",
