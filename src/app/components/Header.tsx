@@ -806,7 +806,6 @@ import {
   getGuestId,
   getToken,
   validateAuth,
-  clearAuth,
   StoredUser,
 } from "@/lib/auth";
 
@@ -829,7 +828,6 @@ const Header = () => {
   const router = useRouter();
   const reduxUser = useSelector((state: RootState) => state.auth.user);
 
-  // Lấy userId ưu tiên: redux → localStorage → guest
   const resolveUserId = useCallback(() => {
     if (reduxUser?.id) return reduxUser.id;
     const authUser = getUser();
@@ -853,22 +851,31 @@ const Header = () => {
     }
   }, [resolveUserId]);
 
-  // Validate token khi mount + khi reduxUser đổi
+  // Đồng bộ user từ local ngay (tránh flash icon login)
+  useEffect(() => {
+    const local = getUser();
+    if (local?.name) {
+      setLoggedInUser(local);
+    } else if (reduxUser) {
+      setLoggedInUser(reduxUser as StoredUser);
+    }
+  }, [reduxUser]);
+
+  // Validate token với server (không clear oan)
   useEffect(() => {
     let cancelled = false;
 
     const init = async () => {
-      // Có token → validate với server
       if (getToken()) {
         const validUser = await validateAuth();
         if (!cancelled) {
-          setLoggedInUser(validUser);
+          // Có token: ưu tiên kết quả validate, fallback local
+          setLoggedInUser(validUser || getUser());
           setAuthChecked(true);
         }
       } else {
-        // Không có token → dùng redux hoặc null
         if (!cancelled) {
-          setLoggedInUser(reduxUser || null);
+          setLoggedInUser(reduxUser || getUser() || null);
           setAuthChecked(true);
         }
       }
@@ -881,27 +888,37 @@ const Header = () => {
     };
   }, [reduxUser, fetchCart]);
 
-  // Lắng nghe cart-updated
+  // cart-updated
   useEffect(() => {
     const handler = () => fetchCart();
     window.addEventListener("cart-updated", handler);
     return () => window.removeEventListener("cart-updated", handler);
   }, [fetchCart]);
 
-  // Lắng nghe auth thay đổi (login/logout từ trang khác)
+  // auth-updated (login cùng tab) + storage (tab khác)
   useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "token" || e.key === "user") {
-        if (!getToken()) {
-          setLoggedInUser(null);
-        } else {
-          validateAuth().then(setLoggedInUser);
-        }
-        fetchCart();
+    const syncAuth = () => {
+      if (!getToken()) {
+        setLoggedInUser(null);
+      } else {
+        validateAuth().then((u) => setLoggedInUser(u || getUser()));
       }
+      fetchCart();
     };
+
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "token" || e.key === "user") syncAuth();
+    };
+
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    window.addEventListener("auth-updated", syncAuth);
+    window.addEventListener("cart-updated", fetchCart);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("auth-updated", syncAuth);
+      window.removeEventListener("cart-updated", fetchCart);
+    };
   }, [fetchCart]);
 
   const cartCount = cart.items.reduce(
@@ -912,6 +929,15 @@ const Header = () => {
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? "hidden" : "auto";
   }, [isMenuOpen]);
+
+  const handleUserClick = () => {
+    // Đã login → profile; chưa login → login
+    if (loggedInUser?.name || getToken()) {
+      router.push("/profile");
+    } else {
+      router.push("/login");
+    }
+  };
 
   return (
     <>
@@ -965,10 +991,10 @@ const Header = () => {
         {/* Right */}
         <div className="flex items-center space-x-2 sm:space-x-4">
           <div className="relative">
-            {authChecked && loggedInUser?.name ? (
+            {loggedInUser?.name ? (
               <span
                 className="text-xs sm:text-sm cursor-pointer hover:underline"
-                onClick={() => router.push("/profile")}
+                onClick={handleUserClick}
               >
                 {loggedInUser.name}
               </span>
@@ -976,7 +1002,7 @@ const Header = () => {
               <User
                 size={16}
                 className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer"
-                onClick={() => router.push("/login")}
+                onClick={handleUserClick}
               />
             )}
           </div>

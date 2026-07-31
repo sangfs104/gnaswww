@@ -475,7 +475,7 @@ import React, { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
-import { setAuth } from "@/lib/auth"; // đường dẫn đúng với project của bạn
+import { setAuth } from "../../../../"; // đường dẫn đúng với project của bạn
 
 function LoginForm() {
   const router = useRouter();

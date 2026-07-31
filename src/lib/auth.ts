@@ -62,6 +62,8 @@ const TOKEN_KEY = "token";
 const USER_KEY = "user";
 const GUEST_KEY = "guestId";
 
+// ==================== GETTERS ====================
+
 export const getToken = (): string | null => {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(TOKEN_KEY);
@@ -71,7 +73,13 @@ export const getUser = (): StoredUser | null => {
   if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(USER_KEY);
-    return raw ? (JSON.parse(raw) as StoredUser) : null;
+    if (!raw) return null;
+    const user = JSON.parse(raw) as StoredUser & { _id?: string };
+    // Chuẩn hoá id nếu backend từng trả _id
+    if (!user.id && user._id) {
+      user.id = user._id;
+    }
+    return user?.id ? user : null;
   } catch {
     return null;
   }
@@ -87,24 +95,48 @@ export const getGuestId = (): string => {
   return id;
 };
 
+/** Ưu tiên: user đã login → guest */
+export const getUserId = (): string => {
+  if (typeof window === "undefined") return "";
+  const user = getUser();
+  if (user?.id) return user.id;
+  return getGuestId();
+};
+
+// ==================== SETTERS ====================
+
 export const setAuth = (token: string, user: StoredUser) => {
+  if (typeof window === "undefined") return;
+  const normalized: StoredUser = {
+    id: user.id || (user as any)._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+  };
   localStorage.setItem(TOKEN_KEY, token);
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  localStorage.setItem(USER_KEY, JSON.stringify(normalized));
 };
 
 export const clearAuth = () => {
+  if (typeof window === "undefined") return;
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
-  // Không xóa guestId để giữ giỏ guest nếu cần
+  // Không xóa guestId — giữ giỏ guest nếu cần
 };
 
-/** Kiểm tra token còn hợp lệ với server. Nếu không → clearAuth */
+// ==================== VALIDATE ====================
+
+/**
+ * Kiểm tra token với server.
+ * - 401 → clearAuth, return null
+ * - Lỗi mạng / 404 / 5xx → giữ local user (không đá login oan)
+ * - OK → đồng bộ user từ server
+ */
 export const validateAuth = async (): Promise<StoredUser | null> => {
   const token = getToken();
-  if (!token) {
-    clearAuth();
-    return null;
-  }
+  if (!token) return null;
+
+  const localUser = getUser();
 
   try {
     const res = await fetch(
@@ -116,25 +148,42 @@ export const validateAuth = async (): Promise<StoredUser | null> => {
       },
     );
 
-    if (!res.ok) {
+    // Token hết hạn / không hợp lệ → mới clear
+    if (res.status === 401) {
       clearAuth();
       return null;
     }
 
-    const data = await res.json();
-    // Đồng bộ lại user từ server (tránh data cũ)
-    if (data.user) {
-      localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-      return data.user as StoredUser;
+    // Endpoint chưa có hoặc lỗi server → giữ session local
+    if (!res.ok) {
+      return localUser;
     }
-    return getUser();
+
+    const data = await res.json();
+    if (data?.user) {
+      const normalized: StoredUser = {
+        id: data.user.id || data.user._id,
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role,
+      };
+      localStorage.setItem(USER_KEY, JSON.stringify(normalized));
+      return normalized;
+    }
+
+    return localUser;
   } catch {
-    clearAuth();
-    return null;
+    // Lỗi mạng → vẫn giữ session
+    return localUser;
   }
 };
 
-/** Helper fetch có tự xử lý 401 */
+// ==================== AUTH FETCH ====================
+
+/**
+ * fetch có gắn Bearer token + tự xử lý 401.
+ * Khi 401: clearAuth + redirect /login?redirect=...
+ */
 export const authFetch = async (
   url: string,
   options: RequestInit = {},
@@ -157,7 +206,6 @@ export const authFetch = async (
 
   if (res.status === 401) {
     clearAuth();
-    // Redirect về login kèm redirect hiện tại
     if (typeof window !== "undefined") {
       const current = window.location.pathname + window.location.search;
       window.location.href = `/login?redirect=${encodeURIComponent(current)}`;
@@ -165,4 +213,10 @@ export const authFetch = async (
   }
 
   return res;
+};
+
+// ==================== HELPERS ====================
+
+export const isLoggedIn = (): boolean => {
+  return !!getToken() && !!getUser();
 };
