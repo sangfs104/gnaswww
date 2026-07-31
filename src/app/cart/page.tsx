@@ -5,6 +5,8 @@
 // import Image from "next/image";
 // import Link from "next/link";
 // import { useRouter } from "next/navigation";
+// // ⚠️ Chỉnh lại đường dẫn cho khớp vị trí thật của file auth.ts trong project bạn
+// import { getUser, getGuestId } from "../../../src/lib/auth";
 
 // // Định nghĩa TypeScript Interfaces
 // interface Variant {
@@ -29,32 +31,16 @@
 //   variant?: Variant;
 // }
 
+// // ✅ Dùng chung 1 nguồn lấy userId với CartContext và CheckoutPage
+// // (trước đây file này tự đọc localStorage riêng, có thể lệch với auth.ts
+// // -> gây ra tình trạng xóa ở "user" này nhưng checkout lại đọc giỏ của "user" khác)
 // const getUserId = () => {
-//   if (typeof window !== "undefined") {
-//     const user = JSON.parse(localStorage.getItem("user") || "null");
-//     if (user?.id) return user.id;
-//     return localStorage.getItem("guestId") || "";
-//   }
-//   return "";
+//   if (typeof window === "undefined") return "";
+//   const user = getUser();
+//   if (user?.id) return user.id;
+//   return getGuestId() || "";
 // };
 
-// // Chuẩn hoá đường dẫn ảnh: nối domain backend nếu là path tương đối
-// // ✅ Đồng bộ logic với ProductDetail.tsx: force https + thêm /api nếu thiếu
-// // const getImageUrl = (imgPath?: string): string => {
-// //   if (!imgPath) return "/img/placeholder.jpg";
-
-// //   if (imgPath.startsWith("http")) {
-// //     // Force https
-// //     let url = imgPath.replace(/^http:\/\//, "https://");
-// //     // Thêm /api nếu thiếu (đường dẫn ảnh backend dạng /api/products/images/...)
-// //     url = url.replace(/(https:\/\/[^/]+)(\/products\/images\/)/, "$1/api$2");
-// //     return url;
-// //   }
-
-// //   return `${process.env.NEXT_PUBLIC_API_URL}${
-// //     imgPath.startsWith("/") ? "" : "/"
-// //   }${imgPath}`;
-// // };
 // const getImageUrl = (imgPath?: string): string => {
 //   if (!imgPath) return "/img/placeholder.jpg";
 //   if (imgPath.startsWith("http")) {
@@ -64,6 +50,7 @@
 //     imgPath.startsWith("/") ? "" : "/"
 //   }${imgPath}`;
 // };
+
 // const ShoppingCart = () => {
 //   const [cartItems, setCartItems] = useState<CartItem[]>([]);
 //   const [loading, setLoading] = useState(true);
@@ -93,6 +80,7 @@
 //         `${process.env.NEXT_PUBLIC_API_URL}/api/cart/${userId}`,
 //         {
 //           credentials: "include",
+//           cache: "no-store", // ✅ tránh cache dữ liệu cũ
 //         },
 //       );
 
@@ -111,6 +99,13 @@
 
 //   useEffect(() => {
 //     fetchCart();
+//   }, [fetchCart]);
+
+//   // ✅ Tự refetch khi có sự kiện cart-updated (bắn ra từ chính file này
+//   // hoặc từ nơi khác), đảm bảo trang này luôn hiển thị đúng dữ liệu server
+//   useEffect(() => {
+//     window.addEventListener("cart-updated", fetchCart);
+//     return () => window.removeEventListener("cart-updated", fetchCart);
 //   }, [fetchCart]);
 
 //   const updateQuantity = async (
@@ -152,7 +147,6 @@
 //       window.dispatchEvent(new Event("cart-updated"));
 //     } catch (err: unknown) {
 //       setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
-//       // Rollback nếu cần
 //       fetchCart();
 //     } finally {
 //       setUpdating(null);
@@ -188,7 +182,10 @@
 //       if (!res.ok) throw new Error("Không thể xóa sản phẩm");
 
 //       const data = await res.json();
+//       // ✅ Luôn tin theo dữ liệu server trả về (không giữ optimistic cũ nếu
+//       // server trả về danh sách khác với dự đoán của client)
 //       setCartItems(data.items || []);
+
 //       window.dispatchEvent(new Event("cart-updated"));
 //     } catch (err: unknown) {
 //       setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
@@ -211,8 +208,10 @@
 //     0,
 //   );
 
+//   // ✅ Bỏ hẳn việc lưu cartItems vào localStorage — CheckoutPage giờ tự fetch
+//   // trực tiếp từ server nên không cần "chuyển" dữ liệu qua localStorage nữa,
+//   // tránh có 2 nguồn dữ liệu (localStorage cũ và server mới) lệch nhau.
 //   const handleCheckout = () => {
-//     localStorage.setItem("cartItems", JSON.stringify(cartItems));
 //     router.push("/checkout");
 //   };
 
@@ -410,7 +409,7 @@
 // export default ShoppingCart;
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -470,6 +469,18 @@ const ShoppingCart = () => {
   const userId = getUserId();
   const router = useRouter();
 
+  // ✅ Đếm số request "GET cart" đang bay để chỉ áp dụng kết quả của request
+  // MỚI NHẤT vào state. Nếu không có cơ chế này, một response cũ (chứa item
+  // đã bị xoá) trả về SAU một response mới có thể ghi đè và làm item "sống lại".
+  const fetchIdRef = useRef(0);
+
+  // ✅ Đếm số thao tác xoá/sửa đang chạy (không chỉ 1 item như `updating`),
+  // dùng để khoá nút "Thanh toán" cho tới khi TẤT CẢ thao tác đã xác nhận
+  // xong với server — tránh việc điều hướng sang checkout khi server chưa
+  // kịp xử lý xong yêu cầu xoá.
+  const pendingOpsRef = useRef(0);
+  const [hasPendingOps, setHasPendingOps] = useState(false);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -484,6 +495,7 @@ const ShoppingCart = () => {
       return;
     }
 
+    const myFetchId = ++fetchIdRef.current;
     setLoading(true);
     try {
       const res = await fetch(
@@ -497,13 +509,19 @@ const ShoppingCart = () => {
       if (!res.ok) throw new Error("Không thể tải giỏ hàng");
 
       const data = await res.json();
+
+      // ✅ Nếu đã có một fetchCart() khác gọi SAU lần này, bỏ qua kết quả
+      // của lần gọi cũ để tránh ghi đè dữ liệu mới bằng dữ liệu cũ hơn.
+      if (myFetchId !== fetchIdRef.current) return;
+
       setCartItems(data.items || []);
       setError(null);
     } catch (err: unknown) {
+      if (myFetchId !== fetchIdRef.current) return;
       setError(err instanceof Error ? err.message : "Đã xảy ra lỗi");
       setCartItems([]);
     } finally {
-      setLoading(false);
+      if (myFetchId === fetchIdRef.current) setLoading(false);
     }
   }, [userId]);
 
@@ -518,6 +536,16 @@ const ShoppingCart = () => {
     return () => window.removeEventListener("cart-updated", fetchCart);
   }, [fetchCart]);
 
+  const beginPendingOp = () => {
+    pendingOpsRef.current += 1;
+    setHasPendingOps(true);
+  };
+
+  const endPendingOp = () => {
+    pendingOpsRef.current = Math.max(0, pendingOpsRef.current - 1);
+    setHasPendingOps(pendingOpsRef.current > 0);
+  };
+
   const updateQuantity = async (
     itemId: string,
     productId: string,
@@ -526,6 +554,7 @@ const ShoppingCart = () => {
   ) => {
     if (newQuantity < 1) return;
     setUpdating(itemId);
+    beginPendingOp();
 
     // Optimistic update
     setCartItems((prev) =>
@@ -560,6 +589,7 @@ const ShoppingCart = () => {
       fetchCart();
     } finally {
       setUpdating(null);
+      endPendingOp();
     }
   };
 
@@ -569,6 +599,7 @@ const ShoppingCart = () => {
     variantId: string | undefined,
   ) => {
     setUpdating(itemId);
+    beginPendingOp();
 
     const prevItems = cartItems;
     // Optimistic update
@@ -583,6 +614,9 @@ const ShoppingCart = () => {
           credentials: "include",
           body: JSON.stringify({
             userId,
+            itemId, // ✅ Xoá theo _id của dòng cart (khoá duy nhất), không suy
+            // luận qua productId/variantId nữa — tránh xoá nhầm hoặc không
+            // khớp được item khi có nhiều dòng trùng productId khác variant.
             productId,
             variantId,
           }),
@@ -603,6 +637,7 @@ const ShoppingCart = () => {
       setCartItems(prevItems);
     } finally {
       setUpdating(null);
+      endPendingOp();
     }
   };
 
@@ -622,10 +657,14 @@ const ShoppingCart = () => {
   // trực tiếp từ server nên không cần "chuyển" dữ liệu qua localStorage nữa,
   // tránh có 2 nguồn dữ liệu (localStorage cũ và server mới) lệch nhau.
   const handleCheckout = () => {
+    // ✅ Chặn điều hướng sang checkout khi vẫn còn thao tác xoá/sửa chưa
+    // được server xác nhận xong — đây chính là nguyên nhân gây ra tình
+    // trạng "đã xoá nhưng checkout vẫn thấy sản phẩm cũ".
+    if (hasPendingOps) return;
     router.push("/checkout");
   };
 
-  if (loading) {
+  if (loading && cartItems.length === 0) {
     return (
       <div className="min-h-screen bg-white flex justify-center items-center">
         <p className="text-gray-600 text-lg">Đang tải...</p>
@@ -800,9 +839,15 @@ const ShoppingCart = () => {
                     <span className="underline">phí vận chuyển</span> được tính
                     khi thanh toán
                   </p>
+                  {hasPendingOps && (
+                    <p className="text-xs sm:text-sm text-amber-600">
+                      Đang cập nhật giỏ hàng, vui lòng đợi trong giây lát...
+                    </p>
+                  )}
                   <button
                     onClick={handleCheckout}
-                    className="w-full bg-black text-white py-3 sm:py-4 px-4 sm:px-6 rounded-md font-medium hover:bg-gray-800 transition-colors text-xs sm:text-sm block text-center"
+                    disabled={hasPendingOps}
+                    className="w-full bg-black text-white py-3 sm:py-4 px-4 sm:px-6 rounded-md font-medium hover:bg-gray-800 transition-colors text-xs sm:text-sm block text-center disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Thanh toán
                   </button>
